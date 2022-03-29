@@ -1,0 +1,15 @@
+# Ignoring Mac system file
+.DS_Store
+
+#Ignore files
+balance2018.csv
+
+#Ignoring folders 
+others/*
+temp/*
+ols_bootstrap/__pycache__/*
+ols_bootstrap/auxillary/__pycache__/*
+ols_bootstrap/ipynb/*
+.ipynb_checkpoints/*
+
+
