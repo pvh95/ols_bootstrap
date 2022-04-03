@@ -26,8 +26,6 @@ class LR:
         for idx in range(var_beta_hat.shape[0]):
             self._beta_se[idx] = np.sqrt(var_beta_hat[idx, idx])
 
-        return self
-
     def predict(self, X_test):
         Y_hat_test = X_test.dot(self._beta)
 
