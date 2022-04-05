@@ -17,7 +17,11 @@ class PairsBootstrap:
             self._indep_varname = X.columns.to_list()
 
         self._iter = iter
+
         self._ci = ci
+        self._lwb = (1.0 - self._ci) / 2
+        self._upb = self._ci + self._lwb
+
         self._Y = Y.to_numpy()
         self._sample_size = self._Y.shape[0]
         self._bootstrap_type = "Pairs Bootstrap"
@@ -48,19 +52,6 @@ class PairsBootstrap:
 
             self._indep_vars_bs_param[:, i] = ols_model.params
 
-    def _pct_ci(self):
-        lwb = (100 - 100 * self._ci) / 2
-        upb = 100 * self._ci + lwb
-
-        pct_ci_mtx = np.zeros((len(self._indep_varname), 2))
-
-        for row in range(pct_ci_mtx.shape[0]):
-            pct_ci_mtx[row, :] = np.percentile(
-                self._indep_vars_bs_param[row, :], [lwb, upb]
-            )
-
-        return pct_ci_mtx
-
     def fit(self):
         self._calc_orig_param_resid_se()
         self._bootstrap()
@@ -74,9 +65,9 @@ class PairsBootstrap:
             self._orig_params - self._indep_vars_bs_mean
         )  # Calculating Bias
 
-        self._pct_ci_mtx = (
-            self._pct_ci()
-        )  # Calculating each parameter (row) a confidence interval
+        self._pct_ci_mtx = np.percentile(
+            self._indep_vars_bs_param, [self._lwb * 100.0, self._upb * 100.0], axis=1
+        ).T  # Calculating each parameter (row) a confidence interval
 
     def summary(self):
         table = PrettyTable()
@@ -104,7 +95,7 @@ class PairsBootstrap:
                     f"{self._indep_vars_bs_bias[idx]:.4f}",
                     f"{self._orig_se[idx]:.4f}",
                     f"{self._indep_vars_bs_se[idx]:.4f}",
-                    f"{(1.0 - self._indep_vars_bs_se[idx] / self._orig_se[idx])*100:.2f}",
+                    f"{(1.0 - self._indep_vars_bs_se[idx] / self._orig_se[idx])*100.0:.2f}",
                     f"[{self._pct_ci_mtx[idx, 0]:.4f}, {self._pct_ci_mtx[idx, 1]:.4f}]",
                     f"{(self._pct_ci_mtx[idx, 1] - self._pct_ci_mtx[idx, 0]):.4f}",
                 ]
