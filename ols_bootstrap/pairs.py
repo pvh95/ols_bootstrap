@@ -13,29 +13,17 @@ class PairsBootstrap:
         if is_constant:
             X_mtx = X.to_numpy()
             self._X = np.hstack((np.ones((X_mtx.shape[0], 1)), X_mtx))
-            self._varnames = tuple(
-                Y.columns.to_list() + ["const"] + X.columns.to_list()
-            )
+            self._indep_varname = ["const"] + X.columns.to_list()
+
         else:
             self._X = X.to_numpy()
-            self._varnames = tuple(Y.columns.to_list() + X.columns.to_list())
+            self._indep_varname = X.columns.to_list()
 
         self._iter = iter
         self._ci = ci
         self._Y = Y.to_numpy()
         self._sample_size = self._Y.shape[0]
         self._bootstrap_type = "Pairs Bootstrap"
-
-        self._calc_orig_param_resid_se()
-        self._indep_vars_params()
-        self._indep_vars_se()
-        self._bootstrap()
-        self._mean()
-        self._stde()
-        self._bias()
-        self._rmse()
-        self._ci_lower_bound()
-        self._ci_upper_bound()
 
     def _calc_orig_param_resid_se(self):
         model_lin = LR(self._Y, self._X)
@@ -46,37 +34,9 @@ class PairsBootstrap:
         self._orig_se = model_lin.se
         self._orig_pred_train = model_lin.pred_train
 
-    def _make_init_dict_for_params(self):
-        indep_vars_lst = self._varnames[1:]  ### omitting Y
-        indep_vars_dict = OrderedDict()
-
-        for key in indep_vars_lst:
-            indep_vars_dict[key] = None
-
-        return indep_vars_dict
-
-    def _indep_vars_params(self):
-        self._indep_params = self._make_init_dict_for_params()
-
-        for i, key in enumerate(self._indep_params):
-            self._indep_params[key] = self._orig_params[i]
-
-    def _indep_vars_se(self):
-        self._indep_se = self._make_init_dict_for_params()
-
-        for i, key in enumerate(self._indep_se):
-            self._indep_se[key] = self._orig_se[i]
-
-    def _init_bs_vars(self):
-        indep_vars_bs_param_dict = self._make_init_dict_for_params()
-
-        for key in indep_vars_bs_param_dict:
-            indep_vars_bs_param_dict[key] = np.zeros(self._iter)
-
-        return indep_vars_bs_param_dict
-
     def _bootstrap(self):
-        self._indep_vars_bs_param_dict = self._init_bs_vars()
+
+        self._indep_vars_bs_param = np.zeros((len(self._indep_varname), self._iter))
 
         data_mtx = np.hstack((self._Y, self._X))
         ss = self._sample_size
@@ -89,57 +49,38 @@ class PairsBootstrap:
 
             ols_model = LR(Y_resampled, X_resampled)
             ols_model.fit()
-            ols_param_values = ols_model.params
 
-            for (key, values) in zip(self._indep_vars_bs_param_dict, ols_param_values):
-                self._indep_vars_bs_param_dict[key][i] = values
+            self._indep_vars_bs_param[:, i] = ols_model.params
 
-    def _mean(self):
-        self._indep_vars_bs_mean = copy.deepcopy(self._indep_vars_bs_param_dict)
-
-        for key in self._indep_vars_bs_mean:
-            self._indep_vars_bs_mean[key] = np.mean(self._indep_vars_bs_mean[key])
-
-    def _stde(self):
-        self._indep_vars_bs_se = copy.deepcopy(self._indep_vars_bs_param_dict)
-
-        for key in self._indep_vars_bs_se:
-            # Calculating with corrected std error
-            self._indep_vars_bs_se[key] = np.std(self._indep_vars_bs_se[key], ddof=1)
-
-    def _bias(self):
-        self._indep_vars_bs_bias = copy.deepcopy(self._indep_vars_bs_mean)
-
-        for key in self._indep_vars_bs_bias:
-            self._indep_vars_bs_bias[key] = np.abs(
-                self._indep_params[key] - self._indep_vars_bs_mean[key]
-            )
-
-    def _rmse(self):
-        self._indep_vars_bs_rmse = copy.deepcopy(self._indep_vars_bs_param_dict)
-
-        for key in self._indep_vars_bs_rmse:
-            self._indep_vars_bs_rmse[key] = np.sqrt(
-                np.mean((self._indep_params[key] - self._indep_vars_bs_rmse[key]) ** 2)
-            )
-
-    def _ci_lower_bound(self):
-        self._indep_vars_bs_lwb = copy.deepcopy(self._indep_vars_bs_param_dict)
+    def _pct_ci(self):
         lwb = (100 - 100 * self._ci) / 2
+        upb = 100 * self._ci + lwb
 
-        for key in self._indep_vars_bs_lwb:
-            self._indep_vars_bs_lwb[key] = np.percentile(
-                self._indep_vars_bs_lwb[key], lwb
+        pct_ci_mtx = np.zeros((len(self._indep_varname), 2))
+
+        for row in range(pct_ci_mtx.shape[0]):
+            pct_ci_mtx[row] = np.percentile(
+                self._indep_vars_bs_param[row, :], [lwb, upb]
             )
 
-    def _ci_upper_bound(self):
-        self._indep_vars_bs_upb = copy.deepcopy(self._indep_vars_bs_param_dict)
-        upb = 100 * self._ci + (100 - 100 * self._ci) / 2
+        return pct_ci_mtx
 
-        for key in self._indep_vars_bs_upb:
-            self._indep_vars_bs_upb[key] = np.percentile(
-                self._indep_vars_bs_upb[key], upb
-            )
+    def fit(self):
+        self._calc_orig_param_resid_se()
+        self._bootstrap()
+        self._indep_vars_bs_mean = np.mean(
+            self._indep_vars_bs_param, axis=1
+        )  # Calculating mean for each bootstraped parameter's distro (row mean)
+        self._indep_vars_bs_se = np.std(
+            self._indep_vars_bs_param, axis=1, ddof=1
+        )  # Calculating std for each bootstraped parameter's distro (row std)
+        self._indep_vars_bs_bias = np.abs(
+            self._orig_params - self._indep_vars_bs_mean
+        )  # Calculating Bias
+
+        self._pct_ci_mtx = (
+            self._pct_ci()
+        )  # Calculating each parameter (row) a confidence interval
 
     def summary(self):
         table = PrettyTable()
@@ -148,39 +89,28 @@ class PairsBootstrap:
 
         table.field_names = [
             "Params",
-            "Original Coeff",
+            "Orig Coeffs",
             "Mean of Bootstrapped Coeffs",
             "Bias",
             "Orig Coeff SE",
             "SE of Bootstrapped Coeffs",
             "% of Diff in SE",
-            "RMSE",
             "PCT CI",
             "PCT CI Diff",
         ]
 
-        orig_coeff = self._indep_params
-        orig_se = self._indep_se
-        mean_coeff = self._indep_vars_bs_mean
-        se_coeff = self._indep_vars_bs_se
-        bias_coeff = self._indep_vars_bs_bias
-        rmse_coeff = self._indep_vars_bs_rmse
-        ci_lwb_coeff = self._indep_vars_bs_lwb
-        ci_upb_coeff = self._indep_vars_bs_upb
-
-        for var in orig_coeff:
+        for idx, var in enumerate(self._indep_varname):
             table.add_row(
                 [
                     f"{var}",
-                    f"{orig_coeff[var]:.4f}",
-                    f"{mean_coeff[var]:.4f}",
-                    f"{bias_coeff[var]:.4f}",
-                    f"{orig_se[var]:.4f}",
-                    f"{se_coeff[var]:.4f}",
-                    f"{(1 - (se_coeff[var] / orig_se[var]))*100:.2f}",
-                    f"{rmse_coeff[var]:.4f}",
-                    f"[{ci_lwb_coeff[var]:.4f}, {ci_upb_coeff[var]:.4f}]",
-                    f"{(ci_upb_coeff[var] - ci_lwb_coeff[var]):.4f}",
+                    f"{self._orig_params[idx]:.4f}",
+                    f"{self._indep_vars_bs_mean[idx]:.4f}",
+                    f"{self._indep_vars_bs_bias[idx]:.4f}",
+                    f"{self._orig_se[idx]:.4f}",
+                    f"{self._indep_vars_bs_se[idx]:.4f}",
+                    f"{(1.0 - self._indep_vars_bs_se[idx] / self._orig_se[idx])*100:.2f}",
+                    f"[{self._pct_ci_mtx[idx, 0]:.4f}, {self._pct_ci_mtx[idx, 1]:.4f}]",
+                    f"{(self._pct_ci_mtx[idx, 1] - self._pct_ci_mtx[idx, 0]):.4f}",
                 ]
             )
 
@@ -188,4 +118,4 @@ class PairsBootstrap:
         table.padding_height = 1
         print(table)
 
-    # TODO: fit method (lasd Oliverek implementacioja), parameter visszaddas, tablazat formazas
+    # TODO: parameterek es statisztikak visszadasa, tablazat formazas
