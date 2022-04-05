@@ -1,9 +1,6 @@
 import numpy as np
-import pandas as pd
-
 from ols_bootstrap.auxillary.linreg import LR
 from ols_bootstrap.pairs import PairsBootstrap
-from prettytable import PrettyTable, ALL
 
 
 class WildBootstrap(PairsBootstrap):

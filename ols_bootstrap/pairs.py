@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-
 from ols_bootstrap.auxillary.linreg import LR
 from prettytable import PrettyTable, ALL
 
