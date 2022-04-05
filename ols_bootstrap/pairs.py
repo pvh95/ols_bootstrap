@@ -150,13 +150,13 @@ class PairsBootstrap:
             "Params",
             "Original Coeff",
             "Mean of Bootstrapped Coeffs",
+            "Bias",
             "Orig Coeff SE",
             "SE of Bootstrapped Coeffs",
             "% of Diff in SE",
-            "Bias",
             "RMSE",
-            "CI",
-            "CI Diff",
+            "PCT CI",
+            "PCT CI Diff",
         ]
 
         orig_coeff = self._indep_params
@@ -174,10 +174,10 @@ class PairsBootstrap:
                     f"{var}",
                     f"{orig_coeff[var]:.4f}",
                     f"{mean_coeff[var]:.4f}",
+                    f"{bias_coeff[var]:.4f}",
                     f"{orig_se[var]:.4f}",
                     f"{se_coeff[var]:.4f}",
                     f"{(1 - (se_coeff[var] / orig_se[var]))*100:.2f}",
-                    f"{bias_coeff[var]:.4f}",
                     f"{rmse_coeff[var]:.4f}",
                     f"[{ci_lwb_coeff[var]:.4f}, {ci_upb_coeff[var]:.4f}]",
                     f"{(ci_upb_coeff[var] - ci_lwb_coeff[var]):.4f}",
