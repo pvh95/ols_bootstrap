@@ -141,8 +141,6 @@ class PairsBootstrap:
                 self._indep_vars_bs_upb[key], upb
             )
 
-        return self._indep_vars_bs_upb
-
     def summary(self):
         table = PrettyTable()
         table.title = f"{self._bootstrap_type} results with sample size of {self._sample_size} and bootstrap resampling size of {self._iter} using {(self._ci * 100):.2f}% CI"
@@ -190,6 +188,4 @@ class PairsBootstrap:
         table.padding_height = 1
         print(table)
 
-    # ToDo: Creating many plots
-    def creating_figures():
-        raise NotImplementedError
+    # TODO: fit method (lasd Oliverek implementacioja), parameter visszaddas, tablazat formazas
