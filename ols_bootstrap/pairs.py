@@ -19,7 +19,7 @@ class PairsBootstrap:
         self._iter = iter
 
         self._ci = ci
-        self._lwb = (1.0 - self._ci) / 2
+        self._lwb = (1 - self._ci) / 2
         self._upb = self._ci + self._lwb
 
         self._Y = Y.to_numpy()
@@ -66,7 +66,7 @@ class PairsBootstrap:
         )  # Calculating Bias
 
         self._pct_ci_mtx = np.percentile(
-            self._indep_vars_bs_param, [self._lwb * 100.0, self._upb * 100.0], axis=1
+            self._indep_vars_bs_param, [self._lwb * 100, self._upb * 100], axis=1
         ).T  # Calculating each parameter (row) a confidence interval
 
     def summary(self):
