@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-import copy
 
 from ols_bootstrap.auxillary.linreg import LR
 from prettytable import PrettyTable, ALL
@@ -35,7 +34,6 @@ class PairsBootstrap:
         self._orig_pred_train = model_lin.pred_train
 
     def _bootstrap(self):
-
         self._indep_vars_bs_param = np.zeros((len(self._indep_varname), self._iter))
 
         data_mtx = np.hstack((self._Y, self._X))
