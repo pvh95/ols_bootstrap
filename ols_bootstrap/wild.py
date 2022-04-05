@@ -1,12 +1,9 @@
 import numpy as np
 import pandas as pd
-import copy
-
 
 from ols_bootstrap.auxillary.linreg import LR
 from ols_bootstrap.pairs import PairsBootstrap
 from prettytable import PrettyTable, ALL
-from collections import OrderedDict
 
 
 class WildBootstrap(PairsBootstrap):
@@ -20,18 +17,18 @@ class WildBootstrap(PairsBootstrap):
         )
 
     def _bootstrap(self):
-        self._indep_vars_bs_param_dict = self._init_bs_vars()
+        self._indep_vars_bs_param = np.zeros((len(self._indep_varname), self._iter))
 
         if self._from_distro == "rademacher":
             rad_val = [1.0, -1.0]
             rad_prob = [0.5, 0.5]
 
             rv_from_distro = np.random.choice(
-                rad_val, size=(self._sample_size,), replace=True, p=rad_prob
+                rad_val, self._sample_size, replace=True, p=rad_prob
             )
 
         elif self._from_distro == "standard_normal":
-            rv_from_distro = np.random.standard_normal((self._sample_size,))
+            rv_from_distro = np.random.standard_normal(self._sample_size)
 
         elif self._from_distro == "mammen":
             mammen_val = [-(np.sqrt(5) - 1) / 2, (np.sqrt(5) + 1) / 2]
@@ -41,7 +38,7 @@ class WildBootstrap(PairsBootstrap):
             ]
 
             rv_from_distro = np.random.choice(
-                mammen_val, size=(self._sample_size,), replace=True, p=mammen_prob
+                mammen_val, self._sample_size, replace=True, p=mammen_prob
             )
 
         for i in range(self._iter):
@@ -50,15 +47,9 @@ class WildBootstrap(PairsBootstrap):
                 self._orig_resid, self._sample_size, replace=True
             )
 
-            for idx in range(self._sample_size):
-                Y_boot[idx] = (
-                    self._orig_pred_train[idx]
-                    + boot_residuals[idx] * rv_from_distro[idx]
-                )
+            Y_boot = self._orig_pred_train + boot_residuals * rv_from_distro
 
             ols_model = LR(Y_boot, self._X)
             ols_model.fit()
-            ols_param_values = ols_model.params
 
-            for (key, values) in zip(self._indep_vars_bs_param_dict, ols_param_values):
-                self._indep_vars_bs_param_dict[key][i] = values
+            self._indep_vars_bs_param[:, i] = ols_model.params
