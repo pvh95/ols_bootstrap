@@ -20,8 +20,7 @@ class ResidualBootstrap(PairsBootstrap):
                 self._orig_resid, self._sample_size, replace=True
             )
 
-            for idx in range(self._sample_size):
-                Y_boot[idx] = self._orig_pred_train[idx] + boot_residuals[idx]
+            Y_boot = self._orig_pred_train + boot_residuals
 
             ols_model = LR(Y_boot, self._X)
             ols_model.fit()
