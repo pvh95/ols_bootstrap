@@ -53,8 +53,7 @@ class WildBootstrap(PairsBootstrap):
             for idx in range(self._sample_size):
                 Y_boot[idx] = (
                     self._orig_pred_train[idx]
-                    + boot_residuals[idx]
-                    + rv_from_distro[idx]
+                    + boot_residuals[idx] * rv_from_distro[idx]
                 )
 
             ols_model = LR(Y_boot, self._X)
