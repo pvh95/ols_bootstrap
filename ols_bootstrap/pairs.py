@@ -57,7 +57,7 @@ class PairsBootstrap:
         pct_ci_mtx = np.zeros((len(self._indep_varname), 2))
 
         for row in range(pct_ci_mtx.shape[0]):
-            pct_ci_mtx[row] = np.percentile(
+            pct_ci_mtx[row, :] = np.percentile(
                 self._indep_vars_bs_param[row, :], [lwb, upb]
             )
 
