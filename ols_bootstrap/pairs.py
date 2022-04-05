@@ -3,7 +3,6 @@ import pandas as pd
 
 from ols_bootstrap.auxillary.linreg import LR
 from prettytable import PrettyTable, ALL
-from collections import OrderedDict
 
 
 class PairsBootstrap:
