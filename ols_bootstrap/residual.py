@@ -4,14 +4,14 @@ from ols_bootstrap.pairs import PairsBootstrap
 
 
 class ResidualBootstrap(PairsBootstrap):
-    def __init__(self, Y, X, iter=10000, ci=0.95, fit_intercept=True):
-        super().__init__(Y, X, iter, ci, fit_intercept)
+    def __init__(self, Y, X, reps=50, ci=0.95, fit_intercept=True):
+        super().__init__(Y, X, reps, ci, fit_intercept)
         self._bootstrap_type = "Residual Bootstrap"
 
     def _bootstrap(self):
-        self._indep_vars_bs_param = np.zeros((len(self._indep_varname), self._iter))
+        self._indep_vars_bs_param = np.zeros((len(self._indep_varname), self._reps))
 
-        for i in range(self._iter):
+        for i in range(self._reps):
             Y_boot = np.zeros(self._sample_size)
             boot_residuals = np.random.choice(
                 self._orig_resid, self._sample_size, replace=True

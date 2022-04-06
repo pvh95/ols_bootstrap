@@ -5,16 +5,16 @@ from ols_bootstrap.pairs import PairsBootstrap
 
 class WildBootstrap(PairsBootstrap):
     def __init__(
-        self, Y, X, iter=10000, ci=0.95, fit_intercept=True, from_distro="rademacher"
+        self, Y, X, reps=50, ci=0.95, fit_intercept=True, from_distro="rademacher"
     ):
         self._from_distro = from_distro
-        super().__init__(Y, X, iter, ci, fit_intercept)
+        super().__init__(Y, X, reps, ci, fit_intercept)
         self._bootstrap_type = (
             f'Wild Bootstrap with {" ".join(from_distro.split("_")).title()}'
         )
 
     def _bootstrap(self):
-        self._indep_vars_bs_param = np.zeros((len(self._indep_varname), self._iter))
+        self._indep_vars_bs_param = np.zeros((len(self._indep_varname), self._reps))
 
         if self._from_distro == "rademacher":
             rad_val = [1.0, -1.0]
@@ -38,7 +38,7 @@ class WildBootstrap(PairsBootstrap):
                 mammen_val, self._sample_size, replace=True, p=mammen_prob
             )
 
-        for i in range(self._iter):
+        for i in range(self._reps):
             Y_boot = np.zeros(self._sample_size)
             boot_residuals = np.random.choice(
                 self._orig_resid, self._sample_size, replace=True

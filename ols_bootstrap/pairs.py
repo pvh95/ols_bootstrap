@@ -5,7 +5,7 @@ from prettytable import PrettyTable, ALL
 
 
 class PairsBootstrap:
-    def __init__(self, Y, X, iter=10000, ci=0.95, fit_intercept=True):
+    def __init__(self, Y, X, reps=50, ci=0.95, fit_intercept=True):
 
         if fit_intercept:
             X_mtx = X.to_numpy()
@@ -20,7 +20,7 @@ class PairsBootstrap:
             key: val for val, key in enumerate(self._indep_varname)
         }
 
-        self._iter = iter
+        self._reps = reps
 
         self._ci = ci
         self._lwb = (1 - self._ci) / 2
@@ -40,12 +40,12 @@ class PairsBootstrap:
         self._orig_pred_train = model_lin.pred_train
 
     def _bootstrap(self):
-        self._indep_vars_bs_param = np.zeros((len(self._indep_varname), self._iter))
+        self._indep_vars_bs_param = np.zeros((len(self._indep_varname), self._reps))
 
         data_mtx = np.hstack((self._Y, self._X))
         ss = self._sample_size
 
-        for i in range(self._iter):
+        for i in range(self._reps):
             idx_arr = np.random.choice(ss, ss, replace=True)
             resampled_mtx = data_mtx[idx_arr]
             Y_resampled = resampled_mtx[:, 0]
@@ -75,7 +75,7 @@ class PairsBootstrap:
 
     def summary(self):
         table = PrettyTable()
-        table.title = f"{self._bootstrap_type} results with sample size of {self._sample_size} and bootstrap resampling size of {self._iter} using {(self._ci * 100):.2f}% CI"
+        table.title = f"{self._bootstrap_type} results with sample size of {self._sample_size} and bootstrap resampling size of {self._reps} using {(self._ci * 100):.2f}% CI"
         table.hrules = ALL
 
         table.field_names = [
