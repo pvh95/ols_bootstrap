@@ -42,8 +42,8 @@ class PairsBootstrap:
         ss = self._sample_size
 
         for i in range(self._iter):
-            idx = np.random.choice(ss, ss, replace=True)
-            resampled_mtx = data_mtx[idx]
+            idx_arr = np.random.choice(ss, ss, replace=True)
+            resampled_mtx = data_mtx[idx_arr]
             Y_resampled = resampled_mtx[:, 0]
             X_resampled = resampled_mtx[:, 1:]
 
