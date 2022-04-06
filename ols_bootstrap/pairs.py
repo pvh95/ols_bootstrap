@@ -16,6 +16,10 @@ class PairsBootstrap:
             self._X = X.to_numpy()
             self._indep_varname = X.columns.to_list()
 
+        self._decode_varname_to_num = {
+            key: val for val, key in enumerate(self._indep_varname)
+        }
+
         self._iter = iter
 
         self._ci = ci
@@ -105,4 +109,53 @@ class PairsBootstrap:
         table.padding_height = 1
         print(table)
 
-    # TODO: parameterek es statisztikak visszadasa, tablazat formazas
+    def get_bootstap_params(self, which_var="all"):
+        if which_var == "all":
+            selected_bs_params = self._indep_vars_bs_param.T
+            which_var = self._indep_varname
+
+        elif isinstance(which_var, tuple) or isinstance(which_var, list):
+            row_idx = [self._decode_varname_to_num[key] for key in which_var]
+            selected_bs_params = self._indep_vars_bs_param[row_idx].T
+
+        selected_bs_params = pd.DataFrame(data=selected_bs_params, columns=which_var)
+
+        return selected_bs_params
+
+    def get_pct_ci(self, which_var="all"):
+        if which_var == "all":
+            selected_ci_params = self._pct_ci_mtx
+            which_var = self._indep_varname
+
+        elif isinstance(which_var, tuple) or isinstance(which_var, list):
+            row_idx = [self._decode_varname_to_num[key] for key in which_var]
+            selected_ci_params = self._pct_ci_mtx[row_idx]
+
+        selected_ci_params = pd.DataFrame(
+            data=selected_ci_params, columns=[f"{self._lwb:.3f}", f"{self._upb:.3f}"]
+        )
+        selected_ci_params.insert(0, "params", which_var)
+
+        return selected_ci_params
+
+    @property
+    def indep_varname(self):
+        return self._indep_varname
+
+    @property
+    def orig_params(self):
+        return self._orig_params
+
+    @property
+    def bs_params_mean(self):
+        return self._indep_vars_bs_mean
+
+    @property
+    def orig_params_se(self):
+        return self._orig_se
+
+    @property
+    def bs_params_se(self):
+        return self._indep_vars_bs_se
+
+    # TODO: return parameters and stats, formatting summary table or writing alternative summary() method
