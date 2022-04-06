@@ -1,5 +1,7 @@
+# params() method's result is checked with statsmodel and sklearn's result
+# resid(), se(), pred_train() methods' results are checked with statsmodel
+
 import numpy as np
-import pandas as pd
 
 
 class LR:
