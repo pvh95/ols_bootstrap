@@ -5,9 +5,9 @@ from prettytable import PrettyTable, ALL
 
 
 class PairsBootstrap:
-    def __init__(self, Y, X, iter=10000, ci=0.95, is_constant=True):
+    def __init__(self, Y, X, iter=10000, ci=0.95, fit_intercept=True):
 
-        if is_constant:
+        if fit_intercept:
             X_mtx = X.to_numpy()
             self._X = np.hstack((np.ones((X_mtx.shape[0], 1)), X_mtx))
             self._indep_varname = ["const"] + X.columns.to_list()

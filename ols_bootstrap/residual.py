@@ -4,8 +4,8 @@ from ols_bootstrap.pairs import PairsBootstrap
 
 
 class ResidualBootstrap(PairsBootstrap):
-    def __init__(self, Y, X, iter=10000, ci=0.95, is_constant=True):
-        super().__init__(Y, X, iter, ci, is_constant)
+    def __init__(self, Y, X, iter=10000, ci=0.95, fit_intercept=True):
+        super().__init__(Y, X, iter, ci, fit_intercept)
         self._bootstrap_type = "Residual Bootstrap"
 
     def _bootstrap(self):
