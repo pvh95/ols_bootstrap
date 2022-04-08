@@ -1,5 +1,5 @@
-# params() method's result is checked with statsmodel and sklearn's result
-# resid(), se(), pred_train() methods' results are checked with statsmodel
+# params() method's result is tested with statsmodel and sklearn's result
+# resid(), se(), pred_train() methods' results are tested with statsmodel
 
 import numpy as np
 
@@ -7,8 +7,10 @@ import numpy as np
 class LR:
     def __init__(self, Y, X):
 
-        if Y.shape == (Y.shape[0],):
-            self.__Y = Y.reshape(Y.shape[0], 1)
+        if Y.shape == (Y.shape[0], 1):
+            self.__Y = Y.reshape(
+                Y.shape[0],
+            )
         else:
             self.__Y = Y
 
@@ -19,27 +21,24 @@ class LR:
         self._Y_hat_train = self.__X.dot(self._beta)
         self._residual = self.__Y - self._Y_hat_train
 
-        residual_sse = self._residual.T @ self._residual
-        sigma_squared_hat = residual_sse[0, 0] / (self.__X.shape[0] - self.__X.shape[1])
-        var_beta_hat = np.linalg.inv(self.__X.T @ self.__X) * sigma_squared_hat
+        residual_sse = self._residual.T.dot(self._residual)
+        sigma_squared_hat = residual_sse / (self.__X.shape[0] - self.__X.shape[1])
+        var_beta_hat = sigma_squared_hat * np.linalg.inv(self.__X.T @ self.__X)
 
-        self._beta_se = np.zeros(var_beta_hat.shape[0])
-
-        for idx in range(var_beta_hat.shape[0]):
-            self._beta_se[idx] = np.sqrt(var_beta_hat[idx, idx])
+        self._beta_se = np.sqrt(np.diag(var_beta_hat))
 
     def predict(self, X_test):
         Y_hat_test = X_test.dot(self._beta)
 
-        return Y_hat_test.reshape((Y_hat_test.shape[0],))
+        return Y_hat_test
 
     @property
     def params(self):
-        return self._beta.reshape((self._beta.shape[0],))
+        return self._beta
 
     @property
     def resid(self):
-        return self._residual.reshape((self._residual.shape[0],))
+        return self._residual
 
     @property
     def se(self):
@@ -47,4 +46,4 @@ class LR:
 
     @property
     def pred_train(self):
-        return self._Y_hat_train.reshape((self._Y_hat_train.shape[0],))
+        return self._Y_hat_train
