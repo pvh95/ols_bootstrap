@@ -28,11 +28,11 @@ class LR:
         try:
             # Compute the (Moore-Penrose) pseudo-inverse of (X.T @ X) matrix
             var_beta_hat = sigma_squared_hat * np.linalg.pinv(self.__X.T @ self.__X)
-            self._beta_se = np.sqrt(np.diag(var_beta_hat))
+            self._bse = np.sqrt(np.diag(var_beta_hat))
 
         # If the design matrix X is a squared matrix, np.linalg.lstsq() would return an empty array for self._residual_ssr so var_beta_hat will throw an exception
         except ValueError:
-            self._beta_se = np.ones(self.__Y.shape[0]) * np.inf
+            self._bse = np.ones(self.__Y.shape[0]) * np.inf
 
     def predict(self, X_test):
         Y_hat_test = X_test.dot(self._beta)
@@ -49,7 +49,7 @@ class LR:
 
     @property
     def bse(self):
-        return self._beta_se
+        return self._bse
 
     @property
     def pred_train(self):
