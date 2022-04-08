@@ -17,15 +17,22 @@ class LR:
         self.__X = X
 
     def fit(self):
-        self._beta = np.linalg.lstsq(self.__X, self.__Y, rcond=None)[0]
+        lstsq_result = np.linalg.lstsq(self.__X, self.__Y, rcond=None)
+        self._beta, self._residual_ssr = lstsq_result[0], lstsq_result[1]
+
         self._Y_hat_train = self.__X.dot(self._beta)
         self._residual = self.__Y - self._Y_hat_train
 
-        residual_sse = self._residual.T.dot(self._residual)
-        sigma_squared_hat = residual_sse / (self.__X.shape[0] - self.__X.shape[1])
-        var_beta_hat = sigma_squared_hat * np.linalg.inv(self.__X.T @ self.__X)
+        sigma_squared_hat = self._residual_ssr / (self.__X.shape[0] - self.__X.shape[1])
 
-        self._beta_se = np.sqrt(np.diag(var_beta_hat))
+        try:
+            # Compute the (Moore-Penrose) pseudo-inverse of (X.T @ X) matrix
+            var_beta_hat = sigma_squared_hat * np.linalg.pinv(self.__X.T @ self.__X)
+            self._beta_se = np.sqrt(np.diag(var_beta_hat))
+
+        # If the design matrix X is a squared matrix, np.linalg.lstsq() would return an empty array for self._residual_ssr so var_beta_hat will throw an exception
+        except ValueError:
+            self._beta_se = np.ones(self.__Y.shape[0]) * np.inf
 
     def predict(self, X_test):
         Y_hat_test = X_test.dot(self._beta)
@@ -41,7 +48,7 @@ class LR:
         return self._residual
 
     @property
-    def se(self):
+    def bse(self):
         return self._beta_se
 
     @property
