@@ -6,7 +6,7 @@ from prettytable import PrettyTable, ALL
 
 class PairsBootstrap:
     def __init__(self, Y, X, reps=50, ci=0.95, fit_intercept=True):
-
+        # setting the # of bootstrap resampling to be 50 as in STATA. For precise bootstrap resmpling, set a higher reps value.
         if fit_intercept:
             X_mtx = X.to_numpy()
             self._X = np.hstack((np.ones((X_mtx.shape[0], 1)), X_mtx))
@@ -36,7 +36,7 @@ class PairsBootstrap:
 
         self._orig_params = model_lin.params
         self._orig_resid = model_lin.resid
-        self._orig_se = model_lin.se
+        self._orig_se = model_lin.bse
         self._orig_pred_train = model_lin.pred_train
 
     def _bootstrap(self):
