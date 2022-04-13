@@ -5,10 +5,17 @@ from ols_bootstrap.pairs import PairsBootstrap
 
 class WildBootstrap(PairsBootstrap):
     def __init__(
-        self, Y, X, reps=50, ci=0.95, fit_intercept=True, from_distro="rademacher"
+        self,
+        Y,
+        X,
+        reps=50,
+        ci=0.95,
+        ci_type="bc",
+        fit_intercept=True,
+        from_distro="rademacher",
     ):
         self._from_distro = from_distro
-        super().__init__(Y, X, reps, ci, fit_intercept)
+        super().__init__(Y, X, reps, ci, ci_type, fit_intercept)
         self._bootstrap_type = (
             f'Wild Bootstrap with {" ".join(from_distro.split("_")).title()}'
         )

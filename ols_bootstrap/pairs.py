@@ -1,11 +1,12 @@
 import numpy as np
 import pandas as pd
 from ols_bootstrap.auxillary.linreg import LR
+from ols_bootstrap.auxillary.bca import BCa
 from prettytable import PrettyTable, ALL
 
-
+### New
 class PairsBootstrap:
-    def __init__(self, Y, X, reps=50, ci=0.95, fit_intercept=True):
+    def __init__(self, Y, X, reps=50, ci=0.95, ci_type="bc", fit_intercept=True):
         # setting the # of bootstrap resampling to be 50 as in STATA. For precise bootstrap resmpling, set a higher reps value.
         if fit_intercept:
             X_mtx = X.to_numpy()
@@ -23,6 +24,7 @@ class PairsBootstrap:
         self._reps = reps
 
         self._ci = ci
+        self._ci_type = ci_type
         self._lwb = (1 - self._ci) / 2
         self._upb = self._ci + self._lwb
 
@@ -69,13 +71,23 @@ class PairsBootstrap:
             self._orig_params - self._indep_vars_bs_mean
         )  # Calculating Bias
 
-        self._pct_ci_mtx = np.percentile(
-            self._indep_vars_bs_param, [self._lwb * 100, self._upb * 100], axis=1
-        ).T  # Calculating each parameter (row) a confidence interval
+        # Calculating each parameter (row) a confidence interval
+        bca = BCa(
+            self._Y,
+            self._X,
+            self._orig_params,
+            self._indep_vars_bs_param,
+            ci=self._ci,
+            ci_type=self._ci_type,
+        )
+
+        self._ci_mtx = bca.get_bca_ci()
 
     def summary(self):
+        ci_translation = {"percentile": "Percentile", "bc": "BC", "bca": "BCa"}
+
         table = PrettyTable()
-        table.title = f"{self._bootstrap_type} results with sample size of {self._sample_size} and bootstrap resampling size of {self._reps} using {(self._ci * 100):.2f}% CI"
+        table.title = f"{self._bootstrap_type} results with sample size of {self._sample_size} and bootstrap resampling size of {self._reps} using {(self._ci * 100):.2f}% {ci_translation[self._ci_type]} CI"
         table.hrules = ALL
 
         table.field_names = [
@@ -86,8 +98,8 @@ class PairsBootstrap:
             "Orig Coeff SE",
             "SE of Bootstrapped Coeffs",
             "% of Diff in SE",
-            "PCT CI",
-            "PCT CI Diff",
+            "CI",
+            "CI Diff",
         ]
 
         for idx, var in enumerate(self._indep_varname):
@@ -100,8 +112,8 @@ class PairsBootstrap:
                     f"{self._orig_se[idx]:.4f}",
                     f"{self._indep_vars_bs_se[idx]:.4f}",
                     f"{(1.0 - self._indep_vars_bs_se[idx] / self._orig_se[idx])*100.0:.2f}",
-                    f"[{self._pct_ci_mtx[idx, 0]:.4f}, {self._pct_ci_mtx[idx, 1]:.4f}]",
-                    f"{(self._pct_ci_mtx[idx, 1] - self._pct_ci_mtx[idx, 0]):.4f}",
+                    f"[{self._ci_mtx[idx, 0]:.4f}, {self._ci_mtx[idx, 1]:.4f}]",
+                    f"{(self._ci_mtx[idx, 1] - self._ci_mtx[idx, 0]):.4f}",
                 ]
             )
 
@@ -122,17 +134,17 @@ class PairsBootstrap:
 
         return selected_bs_params
 
-    def get_pct_ci(self, which_var="all"):
+    def get_ci(self, which_var="all"):
         if which_var == "all":
-            selected_ci_params = self._pct_ci_mtx
+            selected_ci_params = self._ci_mtx
             which_var = self._indep_varname
 
         elif isinstance(which_var, tuple) or isinstance(which_var, list):
             row_idx = [self._decode_varname_to_num[key] for key in which_var]
-            selected_ci_params = self._pct_ci_mtx[row_idx]
+            selected_ci_params = self._ci_mtx[row_idx]
 
         selected_ci_params = pd.DataFrame(
-            data=selected_ci_params, columns=[f"{self._lwb:.3f}", f"{self._upb:.3f}"]
+            data=selected_ci_params, columns=[f"lwb", f"upb"]
         )
         selected_ci_params.insert(0, "params", which_var)
 
@@ -145,6 +157,10 @@ class PairsBootstrap:
     @property
     def orig_params(self):
         return self._orig_params
+
+    @property
+    def bs_params(self):
+        return self._indep_vars_bs_param
 
     @property
     def bs_params_mean(self):
