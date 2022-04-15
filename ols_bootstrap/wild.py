@@ -25,8 +25,8 @@ class WildBootstrap(PairsBootstrap):
         self._indep_vars_bs_param = np.zeros((len(self._indep_varname), self._reps))
 
         if self._from_distro == "rademacher":
-            rad_val = [1.0, -1.0]
-            rad_prob = [0.5, 0.5]
+            rad_val = np.array([1.0, -1.0])
+            rad_prob = np.array([0.5, 0.5])
 
             rv_from_distro = np.random.choice(
                 rad_val, self._sample_size, replace=True, p=rad_prob
@@ -36,11 +36,13 @@ class WildBootstrap(PairsBootstrap):
             rv_from_distro = np.random.standard_normal(self._sample_size)
 
         elif self._from_distro == "mammen":
-            mammen_val = [-(np.sqrt(5) - 1) / 2, (np.sqrt(5) + 1) / 2]
-            mammen_prob = [
-                (np.sqrt(5) + 1) / (2 * np.sqrt(5)),
-                1 - (np.sqrt(5) + 1) / (2 * np.sqrt(5)),
-            ]
+            mammen_val = np.array([-(np.sqrt(5) - 1) / 2, (np.sqrt(5) + 1) / 2])
+            mammen_prob = np.array(
+                [
+                    (np.sqrt(5) + 1) / (2 * np.sqrt(5)),
+                    1 - (np.sqrt(5) + 1) / (2 * np.sqrt(5)),
+                ]
+            )
 
             rv_from_distro = np.random.choice(
                 mammen_val, self._sample_size, replace=True, p=mammen_prob
