@@ -54,31 +54,31 @@ class PairsBootstrap:
         if self._se_type == "constant":
             self._orig_se = homoscedastic_se(self._X, self._orig_ssr)
 
-        elif self._se_type == "HC0":
+        elif self._se_type == "hc0":
             hce_basic = HC0_1(self._X, self._orig_resid)
             self._orig_se = hce_basic.HC0_se
 
-        elif self._se_type == "HC1":
+        elif self._se_type == "hc1":
             hce_basic = HC0_1(self._X, self._orig_resid)
             self._orig_se = hce_basic.HC1_se
 
-        elif self._se_type == "HC2":
+        elif self._se_type == "hc2":
             hce_weighted = HC2_5(self._X, self._orig_resid)
             self._orig_se = hce_weighted.HC2_se
 
-        elif self._se_type == "HC3":
+        elif self._se_type == "hc3":
             hce_weighted = HC2_5(self._X, self._orig_resid)
             self._orig_se = hce_weighted.HC3_se
 
-        elif self._se_type == "HC4":
+        elif self._se_type == "hc4":
             hce_weighted = HC2_5(self._X, self._orig_resid)
             self._orig_se = hce_weighted.HC4_se
 
-        elif self._se_type == "HC4m":
+        elif self._se_type == "hc4m":
             hce_weighted = HC2_5(self._X, self._orig_resid)
             self._orig_se = hce_weighted.HC4m_se
 
-        elif self._se_type == "HC5":
+        elif self._se_type == "hc5":
             hce_weighted = HC2_5(self._X, self._orig_resid)
             self._orig_se = hce_weighted.HC5_se
 
@@ -127,8 +127,19 @@ class PairsBootstrap:
     def summary(self):
         ci_translation = {"percentile": "Percentile", "bc": "BC", "bca": "BCa"}
 
+        se_translation = {
+            "constant": "constant",
+            "hc0": "HC0",
+            "hc1": "HC1",
+            "hc2": "HC2",
+            "hc3": "HC3",
+            "hc4": "HC4",
+            "hc4m": "HC4m",
+            "hc5": "HC5",
+        }
+
         table = PrettyTable()
-        table.title = f"{self._bootstrap_type} results with sample size of {self._sample_size} and bootstrap resampling size of {self._reps} using {self._se_type} SE-s with {(self._ci * 100):.2f}% {ci_translation[self._ci_type]} CI"
+        table.title = f"{self._bootstrap_type} results with sample size of {self._sample_size} and bootstrap resampling size of {self._reps} using {se_translation[self._se_type]} SE-s with {(self._ci * 100):.2f}% {ci_translation[self._ci_type]} CI"
         table.hrules = ALL
 
         table.field_names = [
