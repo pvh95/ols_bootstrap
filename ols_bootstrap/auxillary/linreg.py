@@ -1,5 +1,5 @@
-# params() method's result is tested with statsmodel and sklearn's result
-# resid(), se(), pred_train() methods' results are tested with statsmodel
+# params() method's result was tested with statsmodel and sklearn's results
+# resid(), se(), pred_train() methods' results were tested with statsmodel's result
 
 import numpy as np
 
@@ -8,48 +8,37 @@ class LR:
     def __init__(self, Y, X):
 
         if Y.shape == (Y.shape[0], 1):
-            self.__Y = Y.reshape(
+            self._Y = Y.reshape(
                 Y.shape[0],
             )
         else:
-            self.__Y = Y
+            self._Y = Y
 
-        self.__X = X
+        self._X = X
 
     def fit(self):
-        lstsq_result = np.linalg.lstsq(self.__X, self.__Y, rcond=None)
-        self._beta, self._residual_ssr = lstsq_result[0], lstsq_result[1]
+        lstsq_result = np.linalg.lstsq(self._X, self._Y, rcond=None)
+        self._params, self._residual_ssr = lstsq_result[0], lstsq_result[1]
 
-        self._Y_hat_train = self.__X.dot(self._beta)
-        self._residual = self.__Y - self._Y_hat_train
-
-        sigma_squared_hat = self._residual_ssr / (self.__X.shape[0] - self.__X.shape[1])
-
-        try:
-            # Compute the (Moore-Penrose) pseudo-inverse of (X.T @ X) matrix
-            var_beta_hat = sigma_squared_hat * np.linalg.pinv(self.__X.T @ self.__X)
-            self._bse = np.sqrt(np.diag(var_beta_hat))
-
-        # If the design matrix X is a squared matrix, np.linalg.lstsq() would return an empty array for self._residual_ssr so var_beta_hat will throw an exception
-        except ValueError:
-            self._bse = np.ones(self.__Y.shape[0]) * np.inf
+        self._Y_hat_train = self._X.dot(self._params)
+        self._residual = self._Y - self._Y_hat_train
 
     def predict(self, X_test):
-        Y_hat_test = X_test.dot(self._beta)
+        Y_hat_test = X_test.dot(self._params)
 
         return Y_hat_test
 
     @property
     def params(self):
-        return self._beta
+        return self._params
+
+    @property
+    def ssr(self):
+        return self._residual_ssr
 
     @property
     def resid(self):
         return self._residual
-
-    @property
-    def bse(self):
-        return self._bse
 
     @property
     def pred_train(self):
