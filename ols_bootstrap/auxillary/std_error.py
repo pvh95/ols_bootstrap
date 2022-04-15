@@ -1,3 +1,5 @@
+# Homoskedastic, HC0, HC1, HC2 and HC3 attributes' SE-s were tested with statsmodel's appropriate attributes
+
 import numpy as np
 
 ### Heteroskedastic Standard Error Calculation Class

@@ -1,5 +1,5 @@
 # params() method's result was tested with statsmodel and sklearn's results
-# resid(), se(), pred_train() methods' results were tested with statsmodel's result
+# resid, ssr, pred_train attributes' results were tested with statsmodel's attributes' results
 
 import numpy as np
 
