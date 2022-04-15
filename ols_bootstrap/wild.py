@@ -9,13 +9,14 @@ class WildBootstrap(PairsBootstrap):
         Y,
         X,
         reps=50,
+        se_type="constant",
         ci=0.95,
         ci_type="bc",
         fit_intercept=True,
         from_distro="rademacher",
     ):
         self._from_distro = from_distro
-        super().__init__(Y, X, reps, ci, ci_type, fit_intercept)
+        super().__init__(Y, X, reps, se_type, ci, ci_type, fit_intercept)
         self._bootstrap_type = (
             f'Wild Bootstrap with {" ".join(from_distro.split("_")).title()}'
         )

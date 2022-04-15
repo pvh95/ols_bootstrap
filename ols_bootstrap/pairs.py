@@ -2,11 +2,21 @@ import numpy as np
 import pandas as pd
 from ols_bootstrap.auxillary.linreg import LR
 from ols_bootstrap.auxillary.bca import BCa
+from ols_bootstrap.auxillary.std_error import HC0_1, HC2_5, homoscedastic_se
 from prettytable import PrettyTable, ALL
 
-### New
+
 class PairsBootstrap:
-    def __init__(self, Y, X, reps=50, ci=0.95, ci_type="bc", fit_intercept=True):
+    def __init__(
+        self,
+        Y,
+        X,
+        reps=50,
+        se_type="constant",
+        ci=0.95,
+        ci_type="bc",
+        fit_intercept=True,
+    ):
         # setting the # of bootstrap resampling to be 50 as in STATA. For precise bootstrap resmpling, set a higher reps value.
         if fit_intercept:
             X_mtx = X.to_numpy()
@@ -22,7 +32,7 @@ class PairsBootstrap:
         }
 
         self._reps = reps
-
+        self._se_type = se_type
         self._ci = ci
         self._ci_type = ci_type
         self._lwb = (1 - self._ci) / 2
@@ -33,13 +43,44 @@ class PairsBootstrap:
         self._bootstrap_type = "Pairs Bootstrap"
 
     def _calc_orig_param_resid_se(self):
-        model_lin = LR(self._Y, self._X)
-        model_lin.fit()
+        model_linreg = LR(self._Y, self._X)
+        model_linreg.fit()
 
-        self._orig_params = model_lin.params
-        self._orig_resid = model_lin.resid
-        self._orig_se = model_lin.bse
-        self._orig_pred_train = model_lin.pred_train
+        self._orig_params = model_linreg.params
+        self._orig_resid = model_linreg.resid
+        self._orig_ssr = model_linreg.ssr
+        self._orig_pred_train = model_linreg.pred_train
+
+        if self._se_type == "constant":
+            self._orig_se = homoscedastic_se(self._X, self._orig_ssr)
+
+        elif self._se_type == "HC0":
+            hce_basic = HC0_1(self._X, self._orig_resid)
+            self._orig_se = hce_basic.HC0_se
+
+        elif self._se_type == "HC1":
+            hce_basic = HC0_1(self._X, self._orig_resid)
+            self._orig_se = hce_basic.HC1_se
+
+        elif self._se_type == "HC2":
+            hce_weighted = HC2_5(self._X, self._orig_resid)
+            self._orig_se = hce_weighted.HC2_se
+
+        elif self._se_type == "HC3":
+            hce_weighted = HC2_5(self._X, self._orig_resid)
+            self._orig_se = hce_weighted.HC3_se
+
+        elif self._se_type == "HC4":
+            hce_weighted = HC2_5(self._X, self._orig_resid)
+            self._orig_se = hce_weighted.HC4_se
+
+        elif self._se_type == "HC4m":
+            hce_weighted = HC2_5(self._X, self._orig_resid)
+            self._orig_se = hce_weighted.HC4m_se
+
+        elif self._se_type == "HC5":
+            hce_weighted = HC2_5(self._X, self._orig_resid)
+            self._orig_se = hce_weighted.HC5_se
 
     def _bootstrap(self):
         self._indep_vars_bs_param = np.zeros((len(self._indep_varname), self._reps))
@@ -87,7 +128,7 @@ class PairsBootstrap:
         ci_translation = {"percentile": "Percentile", "bc": "BC", "bca": "BCa"}
 
         table = PrettyTable()
-        table.title = f"{self._bootstrap_type} results with sample size of {self._sample_size} and bootstrap resampling size of {self._reps} using {(self._ci * 100):.2f}% {ci_translation[self._ci_type]} CI"
+        table.title = f"{self._bootstrap_type} results with sample size of {self._sample_size} and bootstrap resampling size of {self._reps} using {self._se_type} SE-s with {(self._ci * 100):.2f}% {ci_translation[self._ci_type]} CI"
         table.hrules = ALL
 
         table.field_names = [
@@ -170,4 +211,4 @@ class PairsBootstrap:
     def bs_params_se(self):
         return self._indep_vars_bs_se
 
-    # TODO: return parameters and stats, formatting summary table or writing alternative summary() method
+    # TODO: formatting summary table or writing alternative summary() method
