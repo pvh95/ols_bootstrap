@@ -159,10 +159,6 @@ class PairsBootstrap:
         return self._orig_params
 
     @property
-    def bs_params(self):
-        return self._indep_vars_bs_param
-
-    @property
     def bs_params_mean(self):
         return self._indep_vars_bs_mean
 
