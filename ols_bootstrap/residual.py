@@ -9,7 +9,7 @@ class ResidualBootstrap(PairsBootstrap):
         Y,
         X,
         reps=50,
-        se_type="constant",
+        se_type="hc3",
         ci=0.95,
         ci_type="bc",
         fit_intercept=True,

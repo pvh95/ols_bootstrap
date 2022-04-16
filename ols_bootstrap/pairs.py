@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import itertools
 from ols_bootstrap.auxillary.linreg import LR
 from ols_bootstrap.auxillary.bca import BCa
 from ols_bootstrap.auxillary.std_error import HC0_1, HC2_5, homoscedastic_se
@@ -13,7 +14,7 @@ class PairsBootstrap:
         Y,
         X,
         reps=50,
-        se_type="constant",
+        se_type="hc3",
         ci=0.95,
         ci_type="bc",
         fit_intercept=True,
@@ -139,17 +140,17 @@ class PairsBootstrap:
         }
 
         table = PrettyTable()
-        table.title = f"{self._bootstrap_type} results with sample size of {self._sample_size} and bootstrap resampling size of {self._reps} using {se_translation[self._se_type]} SE-s with {(self._ci * 100):.2f}% {ci_translation[self._ci_type]} CI"
+        table.title = f"{self._bootstrap_type} results with {self._sample_size} obs and {self._reps} BS reps using {se_translation[self._se_type]} SE-s and {(self._ci * 100):.2f}% {ci_translation[self._ci_type]} CI"
         table.hrules = ALL
 
         table.field_names = [
-            "Params",
-            "Orig Coeffs",
-            "Mean of Bootstrapped Coeffs",
+            "Var",
+            "OLS Params",
+            "Avg of BS Params",
             "Bias",
-            "Orig Coeff SE",
-            "SE of Bootstrapped Coeffs",
-            "% of Diff in SE",
+            "OLS Params SE",
+            "BS Params SE",
+            "% of SE Diff",
             "CI",
             "CI Diff",
         ]
@@ -169,16 +170,30 @@ class PairsBootstrap:
                 ]
             )
 
-        table.padding_width = 2
+        table.padding_width = 1
         table.padding_height = 1
         print(table)
 
     def get_bootstrap_params(self, which_var="all"):
-        if which_var == "all":
-            selected_bs_params = self._indep_vars_bs_param.T
-            which_var = self._indep_varname
+        if isinstance(which_var, str):
+            if which_var == "all":
+                which_var = self._indep_varname
+                selected_bs_params = self._indep_vars_bs_param.T
 
-        elif isinstance(which_var, tuple) or isinstance(which_var, list):
+            else:
+                if which_var in self._indep_varname:
+                    row_idx = [self._decode_varname_to_num[which_var]]
+                    which_var = [which_var]
+
+                    selected_bs_params = self._indep_vars_bs_param[row_idx].T
+
+                else:
+                    raise Exception(
+                        f"'{which_var}' does not exist in {self._indep_varname}"
+                    )
+
+        else:
+            which_var = tuple(which_var)
             row_idx = [self._decode_varname_to_num[key] for key in which_var]
             selected_bs_params = self._indep_vars_bs_param[row_idx].T
 
@@ -186,21 +201,157 @@ class PairsBootstrap:
 
         return selected_bs_params
 
-    def get_ci(self, which_var="all"):
-        if which_var == "all":
-            selected_ci_params = self._ci_mtx
-            which_var = self._indep_varname
+    def get_ci(self, which_ci="current", which_var="all"):
+        all_ci = sorted(["bc", "bca", "percentile"])
 
-        elif isinstance(which_var, tuple) or isinstance(which_var, list):
+        if isinstance(which_ci, str):
+            if which_ci == "current":
+                which_ci = [self._ci_type]
+
+            elif which_ci == "all":
+                which_ci = all_ci
+
+            else:
+                which_ci = [which_ci]
+
+        else:
+            which_ci = sorted(which_ci)
+
+        possible_combinations = [
+            list(val)
+            for n in range(1, len(all_ci) + 1)
+            for val in itertools.combinations(all_ci, n)
+        ]
+
+        if which_ci not in possible_combinations:
+            raise Exception(f"{which_ci} is not in {possible_combinations}.")
+
+        selected_ci_dict = dict()
+
+        for key in which_ci:
+            if key == self._ci_type:
+                selected_ci_dict[key] = self._ci_mtx
+
+            else:
+                bca = BCa(
+                    self._Y,
+                    self._X,
+                    self._orig_params,
+                    self._indep_vars_bs_param,
+                    ci=self._ci,
+                    ci_type=key,
+                )
+
+                selected_ci_dict[key] = bca.get_bca_ci()
+
+        if isinstance(which_var, str):
+            if which_var == "all":
+                which_var = self._indep_varname
+
+            else:
+                if which_var in self._indep_varname:
+                    row_idx = [self._decode_varname_to_num[which_var]]
+                    which_var = [which_var]
+
+                    for key in selected_ci_dict:
+                        selected_ci_dict[key] = selected_ci_dict[key][row_idx]
+
+                else:
+                    raise Exception(
+                        f"'{which_var}' does not exist in {self._indep_varname}"
+                    )
+
+        else:
+            which_var = tuple(which_var)
             row_idx = [self._decode_varname_to_num[key] for key in which_var]
-            selected_ci_params = self._ci_mtx[row_idx]
 
-        selected_ci_params = pd.DataFrame(
-            data=selected_ci_params, columns=[f"lwb", f"upb"]
+            for key in selected_ci_dict:
+                selected_ci_dict[key] = selected_ci_dict[key][row_idx]
+
+        for key in selected_ci_dict:
+            selected_ci_dict[key] = pd.DataFrame(
+                data=selected_ci_dict[key], columns=[f"lwb", f"upb"], index=which_var
+            ).round(4)
+
+        selected_ci_df = pd.concat(
+            selected_ci_dict.values(), axis=1, keys=selected_ci_dict.keys()
         )
-        selected_ci_params.insert(0, "params", which_var)
 
-        return selected_ci_params
+        return selected_ci_df
+
+    def get_all_se(self, which_var="all"):
+
+        if isinstance(which_var, str):
+            if which_var == "all":
+                which_var = self._indep_varname
+                idx_lst = [self._decode_varname_to_num[key] for key in which_var]
+
+            else:
+                if which_var in self._indep_varname:
+                    idx_lst = [self._decode_varname_to_num[which_var]]
+                    which_var = [which_var]
+
+                else:
+                    raise Exception(
+                        f"'{which_var}' does not exist in {self._indep_varname}"
+                    )
+
+        else:
+            which_var = tuple(which_var)
+            idx_lst = [self._decode_varname_to_num[key] for key in which_var]
+
+        se_types = (
+            "bootstrapped",
+            "constant",
+            "hc0",
+            "hc1",
+            "hc2",
+            "hc3",
+            "hc4",
+            "hc4m",
+            "hc5",
+        )
+        se_mtx = np.zeros((len(idx_lst), len(se_types)))
+
+        hce_basic = HC0_1(self._X, self._orig_resid)
+        hce_weighted = HC2_5(self._X, self._orig_resid)
+
+        for col_num, se_col in enumerate(se_types):
+            if se_col == "bootstrapped":
+                se_mtx[:, col_num] = self._indep_vars_bs_se[idx_lst]
+
+            elif se_col == self._se_type:
+                se_mtx[:, col_num] = self._orig_se[idx_lst]
+
+            elif se_col == "constant":
+                se_mtx[:, col_num] = homoscedastic_se(self._X, self._orig_ssr)[idx_lst]
+
+            elif se_col in ["hc0", "hc1"]:
+                if se_col == "hc0":
+                    se_mtx[:, col_num] = hce_basic.HC0_se[idx_lst]
+
+                elif se_col == "hc1":
+                    se_mtx[:, col_num] = hce_basic.HC1_se[idx_lst]
+
+            else:
+                if se_col == "hc2":
+                    se_mtx[:, col_num] = hce_weighted.HC2_se[idx_lst]
+
+                elif se_col == "hc3":
+                    se_mtx[:, col_num] = hce_weighted.HC3_se[idx_lst]
+
+                elif se_col == "hc4":
+                    se_mtx[:, col_num] = hce_weighted.HC4_se[idx_lst]
+
+                elif se_col == "hc4m":
+                    se_mtx[:, col_num] = hce_weighted.HC4m_se[idx_lst]
+
+                elif se_col == "hc5":
+                    se_mtx[:, col_num] = hce_weighted.HC5_se[idx_lst]
+
+        se_mtx = pd.DataFrame(data=se_mtx, columns=se_types, index=which_var).round(4)
+
+        return se_mtx
 
     @property
     def indep_varname(self):
@@ -221,5 +372,9 @@ class PairsBootstrap:
     @property
     def bs_params_se(self):
         return self._indep_vars_bs_se
+
+    @property
+    def bs_params_ci(self):
+        return self._ci_mtx
 
     # TODO: formatting summary table or writing alternative summary() method
