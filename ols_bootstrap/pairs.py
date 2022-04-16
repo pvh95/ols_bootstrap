@@ -173,7 +173,7 @@ class PairsBootstrap:
         table.padding_height = 1
         print(table)
 
-    def get_bootstap_params(self, which_var="all"):
+    def get_bootstrap_params(self, which_var="all"):
         if which_var == "all":
             selected_bs_params = self._indep_vars_bs_param.T
             which_var = self._indep_varname
