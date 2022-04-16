@@ -17,8 +17,9 @@ class LR:
         self._X = X
 
     def fit(self):
-        lstsq_result = np.linalg.lstsq(self._X, self._Y, rcond=None)
-        self._params, self._residual_ssr = lstsq_result[0], lstsq_result[1]
+        self._params, self._residual_ssr, _, _ = np.linalg.lstsq(
+            self._X, self._Y, rcond=None
+        )
 
         self._Y_hat_train = self._X.dot(self._params)
         self._residual = self._Y - self._Y_hat_train
