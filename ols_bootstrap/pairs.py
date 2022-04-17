@@ -271,7 +271,7 @@ class PairsBootstrap:
         for key in selected_ci_dict:
             selected_ci_dict[key] = pd.DataFrame(
                 data=selected_ci_dict[key], columns=[f"lwb", f"upb"], index=which_var
-            ).round(4)
+            )
 
         selected_ci_df = pd.concat(
             selected_ci_dict.values(), axis=1, keys=selected_ci_dict.keys()
@@ -349,7 +349,7 @@ class PairsBootstrap:
                 elif se_col == "hc5":
                     se_mtx[:, col_num] = hce_weighted.HC5_se[idx_lst]
 
-        se_mtx = pd.DataFrame(data=se_mtx, columns=se_types, index=which_var).round(4)
+        se_mtx = pd.DataFrame(data=se_mtx, columns=se_types, index=which_var)
 
         return se_mtx
 
