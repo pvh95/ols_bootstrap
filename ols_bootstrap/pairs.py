@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import itertools
+from statsmodels.stats.diagnostic import het_breuschpagan, het_white
 from ols_bootstrap.auxillary.linreg import LR
 from ols_bootstrap.auxillary.bca import BCa
 from ols_bootstrap.auxillary.std_error import HC0_1, HC2_5, homoscedastic_se
@@ -352,6 +353,16 @@ class PairsBootstrap:
         se_mtx = pd.DataFrame(data=se_mtx, columns=se_types, index=which_var)
 
         return se_mtx
+
+    def bp_test(self, robust=True):
+        bp_test_result = het_breuschpagan(self._orig_resid, self._X, robust=robust)
+
+        return bp_test_result
+
+    def white_test(self):
+        white_test_result = het_white(self._orig_resid, self._X)
+
+        return white_test_result
 
     @property
     def indep_varname(self):
