@@ -49,9 +49,11 @@ class PairsBootstrap:
         model_linreg.fit()
 
         self._orig_params = model_linreg.params
-        self._orig_resid = model_linreg.resid
         self._orig_ssr = model_linreg.ssr
-        self._orig_pred_train = model_linreg.pred_train
+        self._orig_rank = model_linreg.rank
+
+        self._orig_pred_train = model_linreg.predict(self._X)
+        self._orig_resid = model_linreg.get_residual(self._orig_pred_train)
 
         if self._se_type == "constant":
             self._orig_se = homoscedastic_se(self._X, self._orig_ssr)

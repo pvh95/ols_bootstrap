@@ -17,17 +17,19 @@ class LR:
         self._X = X
 
     def fit(self):
-        self._params, self._residual_ssr, _, _ = np.linalg.lstsq(
+        self._params, self._residual_ssr, self._mtx_rank, _ = np.linalg.lstsq(
             self._X, self._Y, rcond=None
         )
-
-        self._Y_hat_train = self._X.dot(self._params)
-        self._residual = self._Y - self._Y_hat_train
 
     def predict(self, X_test):
         Y_hat_test = X_test.dot(self._params)
 
         return Y_hat_test
+
+    def get_residual(self, Y_hat_train):
+        residual = self._Y - Y_hat_train
+
+        return residual
 
     @property
     def params(self):
@@ -38,9 +40,5 @@ class LR:
         return self._residual_ssr
 
     @property
-    def resid(self):
-        return self._residual
-
-    @property
-    def pred_train(self):
-        return self._Y_hat_train
+    def rank(self):
+        return self._mtx_rank
