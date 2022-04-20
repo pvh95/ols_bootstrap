@@ -32,6 +32,42 @@ class WildBootstrap(PairsBootstrap):
                 rad_val, self._sample_size, replace=True, p=rad_prob
             )
 
+        elif self._from_distro == "webb4":
+            # Webb: Reworking Wild Bootstrap Based Inference for Clustered Errors
+            webb4_val = np.array(
+                [-np.sqrt(3 / 2), -np.sqrt(1 / 2), np.sqrt(1 / 2), np.sqrt(3 / 2)]
+            )
+            webb4_prob = 1 / 4 * np.ones(4)
+
+            rv_from_distro = np.random.choice(
+                webb4_val, self._sample_size, replace=True, p=webb4_prob
+            )
+
+        elif self._from_distro == "webb6":
+            # Webb: Reworking Wild Bootstrap Based Inference for Clustered Errors
+            webb6_val = np.array(
+                [
+                    -np.sqrt(3 / 2),
+                    -1,
+                    -np.sqrt(1 / 2),
+                    np.sqrt(1 / 2),
+                    1,
+                    np.sqrt(3 / 2),
+                ]
+            )
+            webb6_prob = 1 / 6 * np.ones(6)
+
+            rv_from_distro = np.random.choice(
+                webb6_val, self._sample_size, replace=True, p=webb6_prob
+            )
+
+        elif self._from_distro == "uniform":
+            # uniform between -sqrt(3) and sqrt(3)
+            # Mackinnon: WILD CLUSTER BOOTSTRAP CONFIDENCE INTERVALS* (2015)
+            rv_from_distro = np.random.uniform(
+                -np.sqrt(3), np.sqrt(3), self._sample_size
+            )
+
         elif self._from_distro == "standard_normal":
             rv_from_distro = np.random.standard_normal(self._sample_size)
 
@@ -47,6 +83,13 @@ class WildBootstrap(PairsBootstrap):
             rv_from_distro = np.random.choice(
                 mammen_val, self._sample_size, replace=True, p=mammen_prob
             )
+
+        elif self._from_distro == "mammen_cont":
+            # u and v are two independent standard normal distribution
+            # Mackinnon: WILD CLUSTER BOOTSTRAP CONFIDENCE INTERVALS* (2015)
+            u = np.random.standard_normal(self._sample_size)
+            w = np.random.standard_normal(self._sample_size)
+            rv_from_distro = u / np.sqrt(2) + 1 / 2 * (w ** 2 - 1)
 
         for i in range(self._reps):
             Y_boot = np.zeros(self._sample_size)
