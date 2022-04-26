@@ -15,6 +15,19 @@ class WildBootstrap(PairsBootstrap):
         fit_intercept=True,
         from_distro="rademacher",
     ):
+        # Beginning of the optional input arguments check
+        if from_distro not in (
+            "rademacher",
+            "webb4",
+            "webb6",
+            "uniform",
+            "standard_normal",
+            "mammen",
+            "mammen_cont",
+        ):
+            raise Exception("Invalid input for the distributions.")
+        # End of the optional input arguments check
+
         self._from_distro = from_distro
         super().__init__(Y, X, reps, se_type, ci, ci_type, fit_intercept)
         self._bootstrap_type = (

@@ -20,6 +20,24 @@ class PairsBootstrap:
         ci_type="bc",
         fit_intercept=True,
     ):
+        self._se_translation = {
+            "constant": "constant",
+            "hc0": "HC0",
+            "hc1": "HC1",
+            "hc2": "HC2",
+            "hc3": "HC3",
+            "hc4": "HC4",
+            "hc4m": "HC4m",
+            "hc5": "HC5",
+        }
+        # Beginning of the optional input arguments check
+        if se_type not in self._se_translation:
+            raise Exception("Invalid standard error type.")
+
+        if ci_type not in ("bc", "bca", "percentile"):
+            raise Exception("Invalid confidence interval type.")
+        # End of the optional input arguments check
+
         if fit_intercept:
             X_mtx = X.to_numpy()
             self._X = np.hstack((np.ones((X_mtx.shape[0], 1)), X_mtx))
@@ -28,6 +46,11 @@ class PairsBootstrap:
         else:
             self._X = X.to_numpy()
             self._indep_varname = X.columns.to_list()
+
+        if self._X.shape[0] <= self._X.shape[1]:
+            raise Exception(
+                "Number of observations is greater than or equal to the number of independent variables."
+            )
 
         self._decode_varname_to_num = {
             key: val for val, key in enumerate(self._indep_varname)
@@ -47,6 +70,11 @@ class PairsBootstrap:
     def _calc_orig_param_resid_se(self):
         model_linreg = LR(self._Y, self._X)
         model_linreg.fit()
+
+        if model_linreg.rank != self._X.shape[1]:
+            raise Exception(
+                "The indpendent variables in the sample are not linearly independent!"
+            )
 
         self._orig_params = model_linreg.params
         self._orig_ssr = model_linreg.ssr
@@ -131,31 +159,19 @@ class PairsBootstrap:
     def summary(self):
         ci_translation = {"percentile": "Percentile", "bc": "BC", "bca": "BCa"}
 
-        se_translation = {
-            "constant": "constant",
-            "hc0": "HC0",
-            "hc1": "HC1",
-            "hc2": "HC2",
-            "hc3": "HC3",
-            "hc4": "HC4",
-            "hc4m": "HC4m",
-            "hc5": "HC5",
-        }
-
         table = PrettyTable()
-        table.title = f"{self._bootstrap_type} results with {self._sample_size} obs and {self._reps} BS reps using {se_translation[self._se_type]} SE-s and {(self._ci * 100):.2f}% {ci_translation[self._ci_type]} CI"
+        table.title = f"{self._bootstrap_type} results with {self._sample_size} obs and {self._reps} BS reps using {self._se_translation[self._se_type]} SE-s and {(self._ci * 100):.2f}% {ci_translation[self._ci_type]} CI"
         table.hrules = ALL
 
         table.field_names = [
             "Var",
             "OLS Params",
-            "Avg of BS Params",
+            "Avg BS Params",
             "Bias",
             "OLS Params SE",
             "BS Params SE",
             "% of SE Diff",
             "CI",
-            "CI Diff",
         ]
 
         for idx, var in enumerate(self._indep_varname):
@@ -169,7 +185,6 @@ class PairsBootstrap:
                     f"{self._indep_vars_bs_se[idx]:.4f}",
                     f"{(1.0 - self._indep_vars_bs_se[idx] / self._orig_se[idx])*100.0:.2f}",
                     f"[{self._ci_mtx[idx, 0]:.4f}, {self._ci_mtx[idx, 1]:.4f}]",
-                    f"{(self._ci_mtx[idx, 1] - self._ci_mtx[idx, 0]):.4f}",
                 ]
             )
 
@@ -303,23 +318,12 @@ class PairsBootstrap:
             which_var = tuple(which_var)
             idx_lst = [self._decode_varname_to_num[key] for key in which_var]
 
-        se_types = (
-            "bootstrapped",
-            "constant",
-            "hc0",
-            "hc1",
-            "hc2",
-            "hc3",
-            "hc4",
-            "hc4m",
-            "hc5",
-        )
-        se_mtx = np.zeros((len(idx_lst), len(se_types)))
+        se_mtx = np.zeros((len(idx_lst), len(self._se_translation)))
 
         hce_basic = HC0_1(self._X, self._orig_resid)
         hce_weighted = HC2_5(self._X, self._orig_resid)
 
-        for col_num, se_col in enumerate(se_types):
+        for col_num, se_col in enumerate(self._se_translation):
             if se_col == "bootstrapped":
                 se_mtx[:, col_num] = self._indep_vars_bs_se[idx_lst]
 
@@ -352,7 +356,9 @@ class PairsBootstrap:
                 elif se_col == "hc5":
                     se_mtx[:, col_num] = hce_weighted.HC5_se[idx_lst]
 
-        se_mtx = pd.DataFrame(data=se_mtx, columns=se_types, index=which_var)
+        se_mtx = pd.DataFrame(
+            data=se_mtx, columns=self._se_translation, index=which_var
+        )
 
         return se_mtx
 
