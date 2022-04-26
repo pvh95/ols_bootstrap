@@ -19,6 +19,7 @@ class PairsBootstrap:
         ci=0.95,
         ci_type="bc",
         fit_intercept=True,
+        seed=None,
     ):
         self._se_translation = {
             "constant": "constant",
@@ -66,6 +67,8 @@ class PairsBootstrap:
         self._Y = Y.to_numpy()
         self._sample_size = self._Y.shape[0]
         self._bootstrap_type = "Pairs Bootstrap"
+
+        self._rng = np.random.default_rng(seed)
 
     def _calc_orig_param_resid_se(self):
         model_linreg = LR(self._Y, self._X)
@@ -121,7 +124,7 @@ class PairsBootstrap:
         ss = self._sample_size
 
         for i in range(self._reps):
-            idx_arr = np.random.choice(ss, ss, replace=True)
+            idx_arr = self._rng.choice(ss, ss, replace=True)
             resampled_mtx = data_mtx[idx_arr]
             Y_resampled = resampled_mtx[:, 0]
             X_resampled = resampled_mtx[:, 1:]

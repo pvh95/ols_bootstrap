@@ -13,6 +13,7 @@ class WildBootstrap(PairsBootstrap):
         ci=0.95,
         ci_type="bc",
         fit_intercept=True,
+        seed=None,
         from_distro="rademacher",
     ):
         # Beginning of the optional input arguments check
@@ -29,7 +30,7 @@ class WildBootstrap(PairsBootstrap):
         # End of the optional input arguments check
 
         self._from_distro = from_distro
-        super().__init__(Y, X, reps, se_type, ci, ci_type, fit_intercept)
+        super().__init__(Y, X, reps, se_type, ci, ci_type, fit_intercept, seed)
         self._bootstrap_type = (
             f'Wild Bootstrap with {" ".join(from_distro.split("_")).title()}'
         )
@@ -41,7 +42,7 @@ class WildBootstrap(PairsBootstrap):
             rad_val = np.array([1.0, -1.0])
             rad_prob = np.array([0.5, 0.5])
 
-            rv_from_distro = np.random.choice(
+            rv_from_distro = self._rng.choice(
                 rad_val, self._sample_size, replace=True, p=rad_prob
             )
 
@@ -52,7 +53,7 @@ class WildBootstrap(PairsBootstrap):
             )
             webb4_prob = 1 / 4 * np.ones(4)
 
-            rv_from_distro = np.random.choice(
+            rv_from_distro = self._rng.choice(
                 webb4_val, self._sample_size, replace=True, p=webb4_prob
             )
 
@@ -70,19 +71,19 @@ class WildBootstrap(PairsBootstrap):
             )
             webb6_prob = 1 / 6 * np.ones(6)
 
-            rv_from_distro = np.random.choice(
+            rv_from_distro = self._rng.choice(
                 webb6_val, self._sample_size, replace=True, p=webb6_prob
             )
 
         elif self._from_distro == "uniform":
             # uniform between -sqrt(3) and sqrt(3)
             # Mackinnon: WILD CLUSTER BOOTSTRAP CONFIDENCE INTERVALS* (2015)
-            rv_from_distro = np.random.uniform(
+            rv_from_distro = self._rng.uniform(
                 -np.sqrt(3), np.sqrt(3), self._sample_size
             )
 
         elif self._from_distro == "standard_normal":
-            rv_from_distro = np.random.standard_normal(self._sample_size)
+            rv_from_distro = self._rng.standard_normal(self._sample_size)
 
         elif self._from_distro == "mammen":
             mammen_val = np.array([-(np.sqrt(5) - 1) / 2, (np.sqrt(5) + 1) / 2])
@@ -93,20 +94,20 @@ class WildBootstrap(PairsBootstrap):
                 ]
             )
 
-            rv_from_distro = np.random.choice(
+            rv_from_distro = self._rng.choice(
                 mammen_val, self._sample_size, replace=True, p=mammen_prob
             )
 
         elif self._from_distro == "mammen_cont":
             # u and v are two independent standard normal distribution
             # Mackinnon: WILD CLUSTER BOOTSTRAP CONFIDENCE INTERVALS* (2015)
-            u = np.random.standard_normal(self._sample_size)
-            w = np.random.standard_normal(self._sample_size)
+            u = self._rng.standard_normal(self._sample_size)
+            w = self._rng.standard_normal(self._sample_size)
             rv_from_distro = u / np.sqrt(2) + 1 / 2 * (w ** 2 - 1)
 
         for i in range(self._reps):
             Y_boot = np.zeros(self._sample_size)
-            boot_residuals = np.random.choice(
+            boot_residuals = self._rng.choice(
                 self._orig_resid, self._sample_size, replace=True
             )
 

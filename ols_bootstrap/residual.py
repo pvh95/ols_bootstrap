@@ -13,8 +13,9 @@ class ResidualBootstrap(PairsBootstrap):
         ci=0.95,
         ci_type="bc",
         fit_intercept=True,
+        seed=None,
     ):
-        super().__init__(Y, X, reps, se_type, ci, ci_type, fit_intercept)
+        super().__init__(Y, X, reps, se_type, ci, ci_type, fit_intercept, seed)
         self._bootstrap_type = "Residual Bootstrap"
 
     def _bootstrap(self):
@@ -22,7 +23,7 @@ class ResidualBootstrap(PairsBootstrap):
 
         for i in range(self._reps):
             Y_boot = np.zeros(self._sample_size)
-            boot_residuals = np.random.choice(
+            boot_residuals = self._rng.choice(
                 self._orig_resid, self._sample_size, replace=True
             )
 
