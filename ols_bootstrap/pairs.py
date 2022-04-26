@@ -64,7 +64,12 @@ class PairsBootstrap:
         self._lwb = (1 - self._ci) / 2
         self._upb = self._ci + self._lwb
 
+        # As the dataset comes from pd.DataFrame, the dependent variable's shape is (obs, 1). We reshape it to (obs, ) shape.
         self._Y = Y.to_numpy()
+        self._Y = self._Y.reshape(
+            self._Y.shape[0],
+        )
+
         self._sample_size = self._Y.shape[0]
         self._bootstrap_type = "Pairs Bootstrap"
 
@@ -120,7 +125,8 @@ class PairsBootstrap:
     def _bootstrap(self):
         self._indep_vars_bs_param = np.zeros((len(self._indep_varname), self._reps))
 
-        data_mtx = np.hstack((self._Y, self._X))
+        Y_col_vect = self._Y.reshape(self._Y.shape[0], 1)
+        data_mtx = np.hstack((Y_col_vect, self._X))
         ss = self._sample_size
 
         for i in range(self._reps):

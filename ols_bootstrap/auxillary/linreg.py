@@ -6,14 +6,7 @@ import numpy as np
 
 class LR:
     def __init__(self, Y, X):
-
-        if Y.shape == (Y.shape[0], 1):
-            self._Y = Y.reshape(
-                Y.shape[0],
-            )
-        else:
-            self._Y = Y
-
+        self._Y = Y
         self._X = X
 
     def fit(self):
