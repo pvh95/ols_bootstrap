@@ -119,3 +119,39 @@ def homoscedastic_se(X, ssr):
     bse = np.sqrt(np.diag(cov_mtx_params))
 
     return bse
+
+
+### Calculatign the appropriate standard error
+def se_calculation(X, se_type, residual, ssr):
+    if se_type == "constant":
+        se = homoscedastic_se(X, ssr)
+
+    elif se_type == "hc0":
+        hce_basic = HC0_1(X, residual)
+        se = hce_basic.HC0_se
+
+    elif se_type == "hc1":
+        hce_basic = HC0_1(X, residual)
+        se = hce_basic.HC1_se
+
+    elif se_type == "hc2":
+        hce_weighted = HC2_5(X, residual)
+        se = hce_weighted.HC2_se
+
+    elif se_type == "hc3":
+        hce_weighted = HC2_5(X, residual)
+        se = hce_weighted.HC3_se
+
+    elif se_type == "hc4":
+        hce_weighted = HC2_5(X, residual)
+        se = hce_weighted.HC4_se
+
+    elif se_type == "hc4m":
+        hce_weighted = HC2_5(X, residual)
+        se = hce_weighted.HC4m_se
+
+    elif se_type == "hc5":
+        hce_weighted = HC2_5(X, residual)
+        se = hce_weighted.HC5_se
+
+    return se

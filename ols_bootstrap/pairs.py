@@ -4,7 +4,12 @@ import itertools
 from statsmodels.stats.diagnostic import het_breuschpagan, het_white
 from ols_bootstrap.auxillary.linreg import LR
 from ols_bootstrap.auxillary.bca import BCa
-from ols_bootstrap.auxillary.std_error import HC0_1, HC2_5, homoscedastic_se
+from ols_bootstrap.auxillary.std_error import (
+    HC0_1,
+    HC2_5,
+    homoscedastic_se,
+    se_calculation,
+)
 from prettytable import PrettyTable, ALL
 
 
@@ -31,6 +36,7 @@ class PairsBootstrap:
             "hc4m": "HC4m",
             "hc5": "HC5",
         }
+
         # Beginning of the optional input arguments check
         if se_type not in self._se_translation:
             raise Exception("Invalid standard error type.")
@@ -91,36 +97,9 @@ class PairsBootstrap:
         self._orig_pred_train = model_linreg.predict(self._X)
         self._orig_resid = model_linreg.get_residual(self._orig_pred_train)
 
-        if self._se_type == "constant":
-            self._orig_se = homoscedastic_se(self._X, self._orig_ssr)
-
-        elif self._se_type == "hc0":
-            hce_basic = HC0_1(self._X, self._orig_resid)
-            self._orig_se = hce_basic.HC0_se
-
-        elif self._se_type == "hc1":
-            hce_basic = HC0_1(self._X, self._orig_resid)
-            self._orig_se = hce_basic.HC1_se
-
-        elif self._se_type == "hc2":
-            hce_weighted = HC2_5(self._X, self._orig_resid)
-            self._orig_se = hce_weighted.HC2_se
-
-        elif self._se_type == "hc3":
-            hce_weighted = HC2_5(self._X, self._orig_resid)
-            self._orig_se = hce_weighted.HC3_se
-
-        elif self._se_type == "hc4":
-            hce_weighted = HC2_5(self._X, self._orig_resid)
-            self._orig_se = hce_weighted.HC4_se
-
-        elif self._se_type == "hc4m":
-            hce_weighted = HC2_5(self._X, self._orig_resid)
-            self._orig_se = hce_weighted.HC4m_se
-
-        elif self._se_type == "hc5":
-            hce_weighted = HC2_5(self._X, self._orig_resid)
-            self._orig_se = hce_weighted.HC5_se
+        self._orig_se = se_calculation(
+            self._X, self._se_type, self._orig_resid, self._orig_ssr
+        )
 
     def _bootstrap(self):
         self._indep_vars_bs_param = np.zeros((len(self._indep_varname), self._reps))
