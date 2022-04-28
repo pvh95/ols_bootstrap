@@ -353,35 +353,39 @@ class PairsBootstrap:
     def bp_test(self, robust=True):
         bp_test_result = het_breuschpagan(self._orig_resid, self._X, robust=robust)
 
-        return bp_test_result
+        return np.array(bp_test_result)
 
     def white_test(self):
         white_test_result = het_white(self._orig_resid, self._X)
 
-        return white_test_result
+        return np.array(white_test_result)
 
     @property
     def indep_varname(self):
         return self._indep_varname
 
     @property
+    def bs_params(self):
+        return self._indep_vars_bs_param
+
+    @property
     def orig_params(self):
         return self._orig_params
 
     @property
-    def bs_params_mean(self):
+    def bs_mean(self):
         return self._indep_vars_bs_mean
 
     @property
-    def orig_params_se(self):
+    def orig_se(self):
         return self._orig_se
 
     @property
-    def bs_params_se(self):
+    def bs_se(self):
         return self._indep_vars_bs_se
 
     @property
-    def bs_params_ci(self):
+    def bs_ci(self):
         return self._ci_mtx
 
     # TODO: formatting summary table or writing alternative summary() method
