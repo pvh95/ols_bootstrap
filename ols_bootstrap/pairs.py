@@ -64,7 +64,11 @@ class PairsBootstrap:
 
             else:
                 self._X = X.to_numpy()
-                self._indep_varname = X.name
+                # If X only contains one feature, reshape it
+                if self._X.shape == (self._X.shape[0],):
+                    self._X = self._X.reshape(self._X.shape[0], 1)
+
+                self._indep_varname = [X.name]
 
         elif isinstance(X, np.ndarray):
             if fit_intercept:
@@ -75,6 +79,10 @@ class PairsBootstrap:
 
             else:
                 self._X = X
+                # If X only contains one feature, reshape it
+                if self._X.shape == (self._X.shape[0],):
+                    self._X = self._X.reshape(self._X.shape[0], 1)
+
                 self._indep_varname = [
                     "x" + str(varnum) for varnum in np.arange(1, self._X.shape[1] + 1)
                 ]
