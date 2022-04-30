@@ -60,7 +60,7 @@ class PairsBootstrap:
 
         if self._X.shape[0] <= self._X.shape[1]:
             raise Exception(
-                "Number of observations is greater than or equal to the number of independent variables."
+                "Number of observations is less than or equal to the number of independent variables."
             )
 
         # End of checking the "goodness" of the input X:
