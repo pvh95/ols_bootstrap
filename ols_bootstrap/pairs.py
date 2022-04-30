@@ -83,7 +83,7 @@ class PairsBootstrap:
             )
 
         # Beginning of checking the "goodness" of the input X:
-        if np.isnan(self._X).any() == True:
+        if np.isnan(self._X).any():
             raise Exception("There is a NaN value in X.")
 
         if self._X.shape[0] <= self._X.shape[1]:
@@ -118,7 +118,7 @@ class PairsBootstrap:
             )
 
         # Beginning of checking the "goodness" of the input Y:
-        if np.isnan(self._Y).any() == True:
+        if np.isnan(self._Y).any():
             raise Exception("There is a NaN value in Y.")
 
         if self._X.shape[0] != self._Y.shape[0]:
