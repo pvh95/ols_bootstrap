@@ -71,25 +71,15 @@ class PairsBootstrap:
                 self._indep_varname = [X.name]
 
         elif isinstance(X, np.ndarray):
-            if fit_intercept:
-                self._X = np.c_[np.ones(X.shape[0]), X]
-                self._indep_varname = ["const"] + [
-                    "x" + str(varnum) for varnum in np.arange(1, self._X.shape[1])
-                ]
+            self._X, self._indep_varname = self._init_asarray_X(X, fit_intercept)
 
-            else:
-                self._X = X
-                # If X only contains one feature, reshape it
-                if self._X.shape == (self._X.shape[0],):
-                    self._X = self._X.reshape(self._X.shape[0], 1)
-
-                self._indep_varname = [
-                    "x" + str(varnum) for varnum in np.arange(1, self._X.shape[1] + 1)
-                ]
+        elif isinstance(X, list) or isinstance(X, tuple):
+            X = np.asarray(X)
+            self._X, self._indep_varname = self._init_asarray_X(X, fit_intercept)
 
         else:
             raise Exception(
-                "X is neither a type of pd.DataFrame nor pd.Series nor np.ndarray"
+                "X is neither a type of pd.DataFrame nor pd.Series nor np.ndarray nor list nor tuple."
             )
 
         # Beginning of checking the "goodness" of the input X:
@@ -116,25 +106,15 @@ class PairsBootstrap:
             self._Y = Y.to_numpy()
 
         elif isinstance(Y, np.ndarray):
-            if Y.shape == (Y.shape[0],):
-                self._Y = Y
+            self._Y = self._init_asarray_Y(Y)
 
-            elif Y.shape == (Y.shape[0], 1):
-                self._Y = Y.reshape(
-                    Y.shape[0],
-                )
-
-            elif Y.shape == (1, Y.shape[1]):
-                self._Y = Y.reshape(
-                    Y.shape[1],
-                )
-
-            else:
-                raise Exception("The shape of Y is not 1D-like array")
+        elif isinstance(Y, list) or isinstance(Y, tuple):
+            Y = np.asarray(Y)
+            self._Y = self._init_asarray_Y(Y)
 
         else:
             raise Exception(
-                "Y is neither a type of pd.DataFrame nor pd.Series nor np.ndarray"
+                "Y is neither a type of pd.DataFrame nor pd.Series nor np.ndarray nor list nor tuple."
             )
 
         # Beginning of checking the "goodness" of the input Y:
@@ -163,6 +143,45 @@ class PairsBootstrap:
         self._bootstrap_type = "Pairs Bootstrap"
 
         self._rng = np.random.default_rng(seed)
+
+    def _init_asarray_X(self, X_arr, fit_intercept):
+        if fit_intercept:
+            X_arr = np.c_[np.ones(X_arr.shape[0]), X_arr]
+            indep_varname = ["const"] + [
+                "x" + str(varnum) for varnum in np.arange(1, X_arr.shape[1])
+            ]
+
+        else:
+            # If X only contains one feature, reshape it
+            if X_arr.shape == (X_arr.shape[0],):
+                X_arr = X_arr.reshape(X_arr.shape[0], 1)
+
+            indep_varname = [
+                "x" + str(varnum) for varnum in np.arange(1, X_arr.shape[1] + 1)
+            ]
+
+        return X_arr, indep_varname
+
+    def _init_asarray_Y(self, Y_arr):
+        if Y_arr.shape == (Y_arr.shape[0],):
+            return Y_arr
+
+        elif Y_arr.shape == (Y_arr.shape[0], 1):
+            Y_arr = Y_arr.reshape(
+                Y_arr.shape[0],
+            )
+
+            return Y_arr
+
+        elif Y_arr.shape == (1, Y_arr.shape[1]):
+            Y_arr = Y_arr.reshape(
+                Y_arr.shape[1],
+            )
+
+            return Y_arr
+
+        else:
+            raise Exception("The shape of Y is not a 1D-alike array.")
 
     def _calc_orig_param_resid_se(self):
         model_linreg = LR(self._Y, self._X)
@@ -276,7 +295,7 @@ class PairsBootstrap:
 
                 else:
                     raise Exception(
-                        f"'{which_var}' does not exist in {self._indep_varname}"
+                        f"'{which_var}' does not exist in {self._indep_varname}."
                     )
 
         else:
@@ -345,7 +364,7 @@ class PairsBootstrap:
 
                 else:
                     raise Exception(
-                        f"'{which_var}' does not exist in {self._indep_varname}"
+                        f"'{which_var}' does not exist in {self._indep_varname}."
                     )
 
         else:
@@ -434,12 +453,12 @@ class PairsBootstrap:
     def bp_test(self, robust=True):
         bp_test_result = het_breuschpagan(self._orig_resid, self._X, robust=robust)
 
-        return np.array(bp_test_result)
+        return bp_test_result
 
     def white_test(self):
         white_test_result = het_white(self._orig_resid, self._X)
 
-        return np.array(white_test_result)
+        return white_test_result
 
     @property
     def indep_varname(self):
