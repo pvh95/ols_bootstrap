@@ -54,10 +54,16 @@ class PairsBootstrap:
             self._X = X.to_numpy()
             self._indep_varname = X.columns.to_list()
 
+        # Beginning of checking the "goodness" of the input X:
+        if np.isnan(self._X).any() == True:
+            raise Exception("There is a NaN value in X.")
+
         if self._X.shape[0] <= self._X.shape[1]:
             raise Exception(
                 "Number of observations is greater than or equal to the number of independent variables."
             )
+
+        # End of checking the "goodness" of the input X:
 
         self._decode_varname_to_num = {
             key: val for val, key in enumerate(self._indep_varname)
