@@ -386,7 +386,6 @@ class PairsBootstrap:
         return selected_ci_df
 
     def get_all_se(self, which_var="all"):
-
         if isinstance(which_var, str):
             if which_var == "all":
                 which_var = self._indep_varname
@@ -406,12 +405,15 @@ class PairsBootstrap:
             which_var = tuple(which_var)
             idx_lst = [self._decode_varname_to_num[key] for key in which_var]
 
-        se_mtx = np.zeros((len(idx_lst), len(self._se_translation)))
+        se_translation_ammended = self._se_translation.copy()
+        se_translation_ammended["bootstrapped"] = "bootstrapped"
+
+        se_mtx = np.zeros((len(idx_lst), len(se_translation_ammended)))
 
         hce_basic = HC0_1(self._X, self._orig_resid)
         hce_weighted = HC2_5(self._X, self._orig_resid)
 
-        for col_num, se_col in enumerate(self._se_translation):
+        for col_num, se_col in enumerate(se_translation_ammended):
             if se_col == "bootstrapped":
                 se_mtx[:, col_num] = self._indep_vars_bs_se[idx_lst]
 
@@ -445,7 +447,7 @@ class PairsBootstrap:
                     se_mtx[:, col_num] = hce_weighted.HC5_se[idx_lst]
 
         se_mtx = pd.DataFrame(
-            data=se_mtx, columns=self._se_translation, index=which_var
+            data=se_mtx, columns=se_translation_ammended, index=which_var
         )
 
         return se_mtx
