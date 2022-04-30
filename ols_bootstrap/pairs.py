@@ -45,14 +45,44 @@ class PairsBootstrap:
             raise Exception("Invalid confidence interval type.")
         # End of the optional input arguments check
 
-        if fit_intercept:
-            X_mtx = X.to_numpy()
-            self._X = np.hstack((np.ones((X_mtx.shape[0], 1)), X_mtx))
-            self._indep_varname = ["const"] + X.columns.to_list()
+        # Beginning of the scrutiny of X:
+        if isinstance(X, pd.DataFrame):
+            if fit_intercept:
+                X_mtx = X.to_numpy()
+                self._X = np.c_[np.ones(X_mtx.shape[0]), X_mtx]
+                self._indep_varname = ["const"] + X.columns.to_list()
+
+            else:
+                self._X = X.to_numpy()
+                self._indep_varname = X.columns.to_list()
+
+        elif isinstance(X, pd.Series):
+            if fit_intercept:
+                X_arr = X.to_numpy()
+                self._X = np.c_[np.ones(X_arr.shape[0]), X_arr]
+                self._indep_varname = ["const", X.name]
+
+            else:
+                self._X = X.to_numpy()
+                self._indep_varname = X.name
+
+        elif isinstance(X, np.ndarray):
+            if fit_intercept:
+                self._X = np.c_[np.ones(X.shape[0]), X]
+                self._indep_varname = ["const"] + [
+                    "x" + str(varnum) for varnum in np.arange(1, self._X.shape[1])
+                ]
+
+            else:
+                self._X = X
+                self._indep_varname = [
+                    "x" + str(varnum) for varnum in np.arange(1, self._X.shape[1] + 1)
+                ]
 
         else:
-            self._X = X.to_numpy()
-            self._indep_varname = X.columns.to_list()
+            raise Exception(
+                "X is neither a type of pd.DataFrame nor pd.Series nor np.ndarray"
+            )
 
         # Beginning of checking the "goodness" of the input X:
         if np.isnan(self._X).any() == True:
@@ -64,6 +94,52 @@ class PairsBootstrap:
             )
 
         # End of checking the "goodness" of the input X:
+        # End of the scrutiny of X
+
+        # Beginning of the scrutiny of Y:
+        if isinstance(Y, pd.DataFrame):
+            # As the dataset comes from pd.DataFrame, the dependent variable's shape is (obs, 1). We reshape it to (obs, ) shape.
+            self._Y = Y.to_numpy()
+            self._Y = self._Y.reshape(
+                self._Y.shape[0],
+            )
+
+        elif isinstance(Y, pd.Series):
+            self._Y = Y.to_numpy()
+
+        elif isinstance(Y, np.ndarray):
+            if Y.shape == (Y.shape[0],):
+                self._Y = Y
+
+            elif Y.shape == (Y.shape[0], 1):
+                self._Y = Y.reshape(
+                    Y.shape[0],
+                )
+
+            elif Y.shape == (1, Y.shape[1]):
+                self._Y = Y.reshape(
+                    Y.shape[1],
+                )
+
+            else:
+                raise Exception("The shape of Y is not 1D-like array")
+
+        else:
+            raise Exception(
+                "Y is neither a type of pd.DataFrame nor pd.Series nor np.ndarray"
+            )
+
+        # Beginning of checking the "goodness" of the input Y:
+        if np.isnan(self._Y).any() == True:
+            raise Exception("There is a NaN value in Y.")
+
+        if self._X.shape[0] != self._Y.shape[0]:
+            raise Exception("The number of observations is not equal in X and Y.")
+
+        # End of checking the "goodness" of the input Y:
+        # End of the scrutiny of Y:
+
+        self._sample_size = self._Y.shape[0]
 
         self._decode_varname_to_num = {
             key: val for val, key in enumerate(self._indep_varname)
@@ -76,13 +152,6 @@ class PairsBootstrap:
         self._lwb = (1 - self._ci) / 2
         self._upb = self._ci + self._lwb
 
-        # As the dataset comes from pd.DataFrame, the dependent variable's shape is (obs, 1). We reshape it to (obs, ) shape.
-        self._Y = Y.to_numpy()
-        self._Y = self._Y.reshape(
-            self._Y.shape[0],
-        )
-
-        self._sample_size = self._Y.shape[0]
         self._bootstrap_type = "Pairs Bootstrap"
 
         self._rng = np.random.default_rng(seed)
@@ -109,9 +178,7 @@ class PairsBootstrap:
 
     def _bootstrap(self):
         self._indep_vars_bs_param = np.zeros((len(self._indep_varname), self._reps))
-
-        Y_col_vect = self._Y.reshape(self._Y.shape[0], 1)
-        data_mtx = np.hstack((Y_col_vect, self._X))
+        data_mtx = np.c_[self._Y, self._X]
         ss = self._sample_size
 
         for i in range(self._reps):
