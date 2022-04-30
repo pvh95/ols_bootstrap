@@ -242,7 +242,7 @@ class PairsBootstrap:
             ci_type=self._ci_type,
         )
 
-        self._ci_mtx = bca.get_bca_ci()
+        self._ci_mtx = bca.bca_ci
 
     def summary(self):
         ci_translation = {"percentile": "Percentile", "bc": "BC", "bca": "BCa"}
@@ -348,7 +348,7 @@ class PairsBootstrap:
                     ci_type=key,
                 )
 
-                selected_ci_dict[key] = bca.get_bca_ci()
+                selected_ci_dict[key] = bca.bca_ci
 
         if isinstance(which_var, str):
             if which_var == "all":

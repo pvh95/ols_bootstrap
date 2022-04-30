@@ -50,7 +50,8 @@ class BCa:
                 (np.sum((mean_jknife_params - jknife_reps) ** 2, axis=0) ** (3 / 2)),
             )
 
-    def get_bca_ci(self):
+    @property
+    def bca_ci(self):
         if self._ci_type == "percentile":
             bca_ci_mtx = np.percentile(
                 self._bs_params, [self._lwb * 100, self._upb * 100], axis=1
