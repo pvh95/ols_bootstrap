@@ -35,9 +35,8 @@ class WildBootstrap(PairsBootstrap):
             f'Wild Bootstrap with {" ".join(from_distro.split("_")).title()}'
         )
 
-    def _bootstrap(self):
-        self._indep_vars_bs_param = np.zeros((len(self._indep_varname), self._reps))
-
+    ###
+    def _rv_choice(self):
         if self._from_distro == "rademacher":
             rad_val = np.array([1.0, -1.0])
             rad_prob = np.array([0.5, 0.5])
@@ -105,13 +104,14 @@ class WildBootstrap(PairsBootstrap):
             w = self._rng.standard_normal(self._sample_size)
             rv_from_distro = u / np.sqrt(2) + 1 / 2 * (w ** 2 - 1)
 
-        for i in range(self._reps):
-            Y_boot = np.zeros(self._sample_size)
-            boot_residuals = self._rng.choice(
-                self._orig_resid, self._sample_size, replace=True
-            )
+        return rv_from_distro
 
-            Y_boot = self._orig_pred_train + boot_residuals * rv_from_distro
+    def _bootstrap(self):
+        self._indep_vars_bs_param = np.zeros((len(self._indep_varname), self._reps))
+
+        for i in range(self._reps):
+            rv_from_distro = self._rv_choice()
+            Y_boot = self._orig_pred_train + self._orig_resid * rv_from_distro
 
             ols_model = LR(Y_boot, self._X)
             ols_model.fit()
