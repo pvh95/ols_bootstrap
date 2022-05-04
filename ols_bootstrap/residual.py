@@ -22,7 +22,6 @@ class ResidualBootstrap(PairsBootstrap):
         self._indep_vars_bs_param = np.zeros((len(self._indep_varname), self._reps))
 
         for i in range(self._reps):
-            Y_boot = np.zeros(self._sample_size)
             boot_residuals = self._rng.choice(
                 self._orig_resid, self._sample_size, replace=True
             )
