@@ -21,12 +21,12 @@ class ResidualBootstrap(PairsBootstrap):
     def _bootstrap(self):
         self._indep_vars_bs_param = np.zeros((len(self._indep_varname), self._reps))
 
-        for i in range(self._reps):
-            boot_residuals = self._rng.choice(
-                self._orig_resid, self._sample_size, replace=True
-            )
+        boot_residuals = self._rng.choice(
+            self._orig_resid, (self._reps, self._sample_size), replace=True
+        )
 
-            Y_boot = self._orig_pred_train + boot_residuals
+        for i in range(self._reps):
+            Y_boot = self._orig_pred_train + boot_residuals[i]
 
             ols_model = LR(Y_boot, self._X)
             ols_model.fit()
