@@ -19,16 +19,14 @@ class ResidualBootstrap(PairsBootstrap):
         self._bootstrap_type = "Residual Bootstrap"
 
     def _bootstrap(self):
-        self._indep_vars_bs_param = np.zeros((len(self._indep_varname), self._reps))
-
-        boot_residuals = self._rng.choice(
+        boot_residuals_mtx = self._rng.choice(
             self._orig_resid, (self._reps, self._sample_size), replace=True
         )
 
-        for i in range(self._reps):
-            Y_boot = self._orig_pred_train + boot_residuals[i]
+        Y_boot_mtx = self._orig_pred_train + boot_residuals_mtx
 
-            ols_model = LR(Y_boot, self._X)
-            ols_model.fit()
+        # Need to transpose Y_boot_mtx because with transpotion each column would represent a newly created Y for each bootstrap sample.
+        ols_model = LR(Y_boot_mtx.T, self._X)
+        ols_model.fit()
 
-            self._indep_vars_bs_param[:, i] = ols_model.params
+        self._indep_vars_bs_param = ols_model.params

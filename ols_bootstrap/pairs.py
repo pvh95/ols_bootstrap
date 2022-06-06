@@ -206,11 +206,14 @@ class PairsBootstrap:
     def _bootstrap(self):
         self._indep_vars_bs_param = np.zeros((len(self._indep_varname), self._reps))
         data_mtx = np.c_[self._Y, self._X]
-        ss = self._sample_size
+
+        # Create an idx_arr_mtx in which each row represents the indicies we use for pairs bootstrap.
+        idx_arr_mtx = self._rng.choice(
+            self._sample_size, (self._reps, self._sample_size), replace=True
+        )
 
         for i in range(self._reps):
-            idx_arr = self._rng.choice(ss, ss, replace=True)
-            resampled_mtx = data_mtx[idx_arr]
+            resampled_mtx = data_mtx[idx_arr_mtx[i]]
             Y_resampled = resampled_mtx[:, 0]
             X_resampled = resampled_mtx[:, 1:]
 

@@ -36,13 +36,11 @@ class WildBootstrap(PairsBootstrap):
         )
 
     def _bootstrap(self):
-        self._indep_vars_bs_param = np.zeros((len(self._indep_varname), self._reps))
-
         if self._from_distro == "rademacher":
             rad_val = np.array([1.0, -1.0])
             rad_prob = np.array([0.5, 0.5])
 
-            rv_from_distro = self._rng.choice(
+            rv_from_distro_mtx = self._rng.choice(
                 rad_val, (self._reps, self._sample_size), replace=True, p=rad_prob
             )
 
@@ -53,7 +51,7 @@ class WildBootstrap(PairsBootstrap):
             )
             webb4_prob = 1 / 4 * np.ones(4)
 
-            rv_from_distro = self._rng.choice(
+            rv_from_distro_mtx = self._rng.choice(
                 webb4_val, (self._reps, self._sample_size), replace=True, p=webb4_prob
             )
 
@@ -71,19 +69,21 @@ class WildBootstrap(PairsBootstrap):
             )
             webb6_prob = 1 / 6 * np.ones(6)
 
-            rv_from_distro = self._rng.choice(
+            rv_from_distro_mtx = self._rng.choice(
                 webb6_val, (self._reps, self._sample_size), replace=True, p=webb6_prob
             )
 
         elif self._from_distro == "uniform":
             # uniform between -sqrt(3) and sqrt(3)
             # Mackinnon: WILD CLUSTER BOOTSTRAP CONFIDENCE INTERVALS* (2015)
-            rv_from_distro = self._rng.uniform(
+            rv_from_distro_mtx = self._rng.uniform(
                 -np.sqrt(3), np.sqrt(3), (self._reps, self._sample_size)
             )
 
         elif self._from_distro == "standard_normal":
-            rv_from_distro = self._rng.standard_normal((self._reps, self._sample_size))
+            rv_from_distro_mtx = self._rng.standard_normal(
+                (self._reps, self._sample_size)
+            )
 
         elif self._from_distro == "mammen":
             mammen_val = np.array([-(np.sqrt(5) - 1) / 2, (np.sqrt(5) + 1) / 2])
@@ -94,21 +94,20 @@ class WildBootstrap(PairsBootstrap):
                 ]
             )
 
-            rv_from_distro = self._rng.choice(
+            rv_from_distro_mtx = self._rng.choice(
                 mammen_val, (self._reps, self._sample_size), replace=True, p=mammen_prob
             )
 
         elif self._from_distro == "mammen_cont":
-            # u and v are two independent standard normal distribution
+            # u and w are two independent standard normal distribution
             # Mackinnon: WILD CLUSTER BOOTSTRAP CONFIDENCE INTERVALS* (2015)
             u = self._rng.standard_normal((self._reps, self._sample_size))
             w = self._rng.standard_normal((self._reps, self._sample_size))
-            rv_from_distro = u / np.sqrt(2) + 1 / 2 * (w ** 2 - 1)
+            rv_from_distro_mtx = u / np.sqrt(2) + 1 / 2 * (w ** 2 - 1)
 
-        for i in range(self._reps):
-            Y_boot = self._orig_pred_train + self._orig_resid * rv_from_distro[i]
+        Y_boot_mtx = self._orig_pred_train + self._orig_resid * rv_from_distro_mtx
 
-            ols_model = LR(Y_boot, self._X)
-            ols_model.fit()
-
-            self._indep_vars_bs_param[:, i] = ols_model.params
+        # Need to transpose Y_boot_mtx because with transpotion each column would represent a newly created Y for each bootstrap sample.
+        ols_model = LR(Y_boot_mtx.T, self._X)
+        ols_model.fit()
+        self._indep_vars_bs_param = ols_model.params
