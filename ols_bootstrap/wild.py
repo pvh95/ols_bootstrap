@@ -1,6 +1,7 @@
 import numpy as np
 from ols_bootstrap.auxillary.linreg import LR
 from ols_bootstrap.pairs import PairsBootstrap
+from ols_bootstrap.auxillary.std_error import se_calculation
 
 
 class WildBootstrap(PairsBootstrap):
@@ -14,6 +15,7 @@ class WildBootstrap(PairsBootstrap):
         ci_type="bc",
         fit_intercept=True,
         seed=None,
+        scale_resid=True,
         from_distro="rademacher",
     ):
         # Beginning of the optional input arguments check
@@ -29,10 +31,20 @@ class WildBootstrap(PairsBootstrap):
             raise Exception("Invalid input for the distributions.")
         # End of the optional input arguments check
 
+        self._scale_resid = scale_resid
         self._from_distro = from_distro
         super().__init__(Y, X, reps, se_type, ci, ci_type, fit_intercept, seed)
         self._bootstrap_type = (
             f'Wild Bootstrap with {" ".join(from_distro.split("_")).title()}'
+        )
+
+    def _calc_se(self):
+        self._orig_se, self._orig_hc_resid = se_calculation(
+            self._X,
+            self._se_type,
+            self._orig_resid,
+            self._orig_ssr,
+            scale_resid=self._scale_resid,
         )
 
     def _bootstrap(self):
@@ -105,7 +117,7 @@ class WildBootstrap(PairsBootstrap):
             w = self._rng.standard_normal((self._reps, self._sample_size))
             rv_from_distro_mtx = u / np.sqrt(2) + 1 / 2 * (w ** 2 - 1)
 
-        Y_boot_mtx = self._orig_pred_train + self._orig_resid * rv_from_distro_mtx
+        Y_boot_mtx = self._orig_pred_train + self._orig_hc_resid * rv_from_distro_mtx
 
         # Need to transpose Y_boot_mtx because with transpotion each column would represent a newly created Y for each bootstrap sample.
         ols_model = LR(Y_boot_mtx.T, self._X)
