@@ -183,7 +183,7 @@ class PairsBootstrap:
         else:
             raise Exception("The shape of Y is not a 1D-alike array.")
 
-    def _calc_orig_param_resid_se(self):
+    def _calc_orig_param_resid(self):
         model_linreg = LR(self._Y, self._X)
         model_linreg.fit()
 
@@ -199,8 +199,13 @@ class PairsBootstrap:
         self._orig_pred_train = model_linreg.predict(self._X)
         self._orig_resid = model_linreg.get_residual(self._orig_pred_train)
 
-        self._orig_se = se_calculation(
-            self._X, self._se_type, self._orig_resid, self._orig_ssr
+    def _calc_se(self):
+        self._orig_se, self._orig_hc_resid = se_calculation(
+            self._X,
+            self._se_type,
+            self._orig_resid,
+            self._orig_ssr,
+            scale_resid=False,
         )
 
     def _bootstrap(self):
@@ -223,7 +228,8 @@ class PairsBootstrap:
             self._indep_vars_bs_param[:, i] = ols_model.params
 
     def fit(self):
-        self._calc_orig_param_resid_se()
+        self._calc_orig_param_resid()
+        self._calc_se()
         self._bootstrap()
         self._indep_vars_bs_mean = np.mean(
             self._indep_vars_bs_param, axis=1
@@ -456,12 +462,12 @@ class PairsBootstrap:
         return se_mtx
 
     def bp_test(self, robust=True):
-        bp_test_result = het_breuschpagan(self._orig_resid, self._X, robust=robust)
+        bp_test_result = het_breuschpagan(self._orig_hc_resid, self._X, robust=robust)
 
         return bp_test_result
 
     def white_test(self):
-        white_test_result = het_white(self._orig_resid, self._X)
+        white_test_result = het_white(self._orig_hc_resid, self._X)
 
         return white_test_result
 
