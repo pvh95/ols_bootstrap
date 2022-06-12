@@ -36,7 +36,7 @@ class PairsBootstrap:
         if se_type not in self._se_translation:
             raise Exception("Invalid standard error type.")
 
-        if ci_type not in ("bc", "bca", "percentile", "studentized"):
+        if ci_type not in {"bc", "bca", "percentile", "studentized", "basic"}:
             raise Exception("Invalid confidence interval type.")
         # End of the optional input arguments check
 
@@ -197,7 +197,7 @@ class PairsBootstrap:
 
         self._pinv_XtX = np.linalg.pinv(self._X.T @ self._X)
         if self._ci_type == "studentized" and self._bootstrap_type != "Pairs Bootstrap":
-            if self._se_type in ["constant", "hc0", "hc1"]:
+            if self._se_type in {"constant", "hc0", "hc1"}:
                 self._H_diag = None
             else:
                 self._H_diag = np.diag(self._X @ self._pinv_XtX @ self._X.T)
@@ -300,6 +300,7 @@ class PairsBootstrap:
             "bc": "BC",
             "bca": "BCa",
             "studentized": "Studentized",
+            "basic": "Basic",
         }
 
         table = PrettyTable()

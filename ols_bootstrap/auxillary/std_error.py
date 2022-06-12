@@ -82,7 +82,7 @@ def calc_se_t(
 
         return bs_se
 
-    elif se_type in ["hc0", "hc1"]:
+    elif se_type in {"hc0", "hc1"}:
         diag_mtx = np.diag(bs_resid ** 2)
         hccm = pinv_XtX @ X.T @ diag_mtx @ X @ pinv_XtX
 
@@ -138,7 +138,7 @@ def calc_se_psb_t(X_resampled, bs_resid, bs_ssr, se_type):
 
         return bs_se
 
-    elif se_type in ["hc0", "hc1"]:
+    elif se_type in {"hc0", "hc1"}:
         diag_mtx = np.diag(bs_resid ** 2)
         hccm = pinv_XtX @ X_resampled.T @ diag_mtx @ X_resampled @ pinv_XtX
 

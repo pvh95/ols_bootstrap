@@ -52,10 +52,17 @@ class BCa:
 
     @property
     def bca_ci(self):
-        if self._ci_type == "percentile":
+        if self._ci_type in {"percentile", "basic"}:
             bca_ci_mtx = np.percentile(
                 self._bs_params, [self._lwb * 100, self._upb * 100], axis=1
             ).T
+
+            if self._ci_type == "basic":
+                bca_ci_mtx = 2 * self._orig_params - bca_ci_mtx
+                # swap columns to have the correct lower bound and upper bound columns (in this order).
+                bca_ci_mtx[:, [0, 1]] = bca_ci_mtx[:, [1, 0]]
+
+            return bca_ci_mtx
 
         else:
             self._compute_z0_jknife_reps_acceleration()
