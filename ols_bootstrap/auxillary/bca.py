@@ -65,6 +65,7 @@ class BCa:
 
             return bca_ci_mtx
 
+        # https://math.mit.edu/~dav/05.dir/class24-prep-a.pdf -- Never seen this type of bs ci anywhere else
         elif self._ci_type == "empirical":
             delta = self._bs_params - self._orig_params
             delta_pct = np.percentile(delta, [self._upb * 100, self._lwb * 100], axis=1)
