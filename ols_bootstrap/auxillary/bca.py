@@ -2,7 +2,8 @@ import numpy as np
 from scipy.stats import norm
 from ols_bootstrap.auxillary.linreg import LR
 
-# TODO:  Rename the file, rename the class, implement reverse percentile ci as basic, (maybe implement expanded percentile, abc, double bootstrap if having spare time)
+# TODO:  Rename the file, rename the class
+# Not important TODO: maybe implement expanded percentile, abc, double bootstrap if having spare time
 
 
 class BCa:
@@ -61,6 +62,14 @@ class BCa:
                 bca_ci_mtx = 2 * self._orig_params - bca_ci_mtx
                 # swap columns to have the correct lower bound and upper bound columns (in this order).
                 bca_ci_mtx[:, [0, 1]] = bca_ci_mtx[:, [1, 0]]
+
+            return bca_ci_mtx
+
+        elif self._ci_type == "empirical":
+            delta = self._bs_params - self._orig_params
+            delta_pct = np.percentile(delta, [self._upb * 100, self._lwb * 100], axis=1)
+
+            bca_ci_mtx = self._orig_params - delta_pct.T
 
             return bca_ci_mtx
 

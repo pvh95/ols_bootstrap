@@ -36,7 +36,14 @@ class PairsBootstrap:
         if se_type not in self._se_translation:
             raise Exception("Invalid standard error type.")
 
-        if ci_type not in {"bc", "bca", "percentile", "studentized", "basic"}:
+        if ci_type not in {
+            "bc",
+            "bca",
+            "percentile",
+            "studentized",
+            "basic",
+            "empirical",
+        }:
             raise Exception("Invalid confidence interval type.")
         # End of the optional input arguments check
 
@@ -301,6 +308,7 @@ class PairsBootstrap:
             "bca": "BCa",
             "studentized": "Studentized",
             "basic": "Basic",
+            "empirical": "Empirical",
         }
 
         table = PrettyTable()
