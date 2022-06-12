@@ -1,7 +1,7 @@
 import numpy as np
 from ols_bootstrap.auxillary.linreg import LR
 from ols_bootstrap.pairs import PairsBootstrap
-from ols_bootstrap.auxillary.std_error import se_calculation
+from ols_bootstrap.auxillary.std_error import calc_se_t
 
 
 class WildBootstrap(PairsBootstrap):
@@ -15,7 +15,7 @@ class WildBootstrap(PairsBootstrap):
         ci_type="bc",
         fit_intercept=True,
         seed=None,
-        scale_resid=True,
+        scale_resid_bool=True,
         from_distro="rademacher",
     ):
         # Beginning of the optional input arguments check
@@ -31,20 +31,11 @@ class WildBootstrap(PairsBootstrap):
             raise Exception("Invalid input for the distributions.")
         # End of the optional input arguments check
 
-        self._scale_resid = scale_resid
         self._from_distro = from_distro
         super().__init__(Y, X, reps, se_type, ci, ci_type, fit_intercept, seed)
+        self._scale_resid_bool = scale_resid_bool
         self._bootstrap_type = (
             f'Wild Bootstrap with {" ".join(from_distro.split("_")).title()}'
-        )
-
-    def _calc_se(self):
-        self._orig_se, self._orig_hc_resid = se_calculation(
-            self._X,
-            self._se_type,
-            self._orig_resid,
-            self._orig_ssr,
-            scale_resid=self._scale_resid,
         )
 
     def _bootstrap(self):
@@ -117,9 +108,31 @@ class WildBootstrap(PairsBootstrap):
             w = self._rng.standard_normal((self._reps, self._sample_size))
             rv_from_distro_mtx = u / np.sqrt(2) + 1 / 2 * (w ** 2 - 1)
 
-        Y_boot_mtx = self._orig_pred_train + self._orig_hc_resid * rv_from_distro_mtx
+        Y_boot_mtx = self._orig_pred_train + self._scaled_residuals * rv_from_distro_mtx
 
         # Need to transpose Y_boot_mtx because with transpotion each column would represent a newly created Y for each bootstrap sample.
-        ols_model = LR(Y_boot_mtx.T, self._X)
-        ols_model.fit()
-        self._indep_vars_bs_param = ols_model.params
+        ols_bs_model = LR(Y_boot_mtx.T, self._X)
+        ols_bs_model.fit()
+        self._indep_vars_bs_param = ols_bs_model.params
+
+        if self._ci_type == "studentized":
+            bs_ssr = ols_bs_model.ssr
+            bs_pred_train = ols_bs_model.predict(self._X)
+            bs_resid = ols_bs_model.get_residual(bs_pred_train)
+
+            bs_se = np.zeros((self._feature_nums, self._reps))
+
+            for i in range(self._reps):
+                bs_se[:, i] = calc_se_t(
+                    self._X,
+                    self._pinv_XtX,
+                    bs_resid[:, i],
+                    bs_ssr[i],
+                    self._se_type,
+                    H_diag=self._H_diag,
+                )
+
+            self._t_stat_boot = (
+                self._indep_vars_bs_param
+                - self._orig_params.reshape(self._feature_nums, 1)
+            ) / bs_se

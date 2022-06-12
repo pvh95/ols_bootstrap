@@ -4,12 +4,7 @@ import itertools
 from statsmodels.stats.diagnostic import het_breuschpagan, het_white
 from ols_bootstrap.auxillary.linreg import LR
 from ols_bootstrap.auxillary.bca import BCa
-from ols_bootstrap.auxillary.std_error import (
-    HC0_1,
-    HC2_5,
-    homoscedastic_se,
-    se_calculation,
-)
+from ols_bootstrap.auxillary.std_error import calc_se_orig, calc_se_psb_t
 from prettytable import PrettyTable, ALL
 
 
@@ -41,7 +36,7 @@ class PairsBootstrap:
         if se_type not in self._se_translation:
             raise Exception("Invalid standard error type.")
 
-        if ci_type not in ("bc", "bca", "percentile"):
+        if ci_type not in ("bc", "bca", "percentile", "studentized"):
             raise Exception("Invalid confidence interval type.")
         # End of the optional input arguments check
 
@@ -82,11 +77,14 @@ class PairsBootstrap:
                 "X is neither a type of pd.DataFrame nor pd.Series nor np.ndarray nor list nor tuple."
             )
 
+        self._sample_size = self._X.shape[0]
+        self._feature_nums = self._X.shape[1]
+
         # Beginning of checking the "goodness" of the input X:
         if np.isnan(self._X).any():
             raise Exception("There is a NaN value in X.")
 
-        if self._X.shape[0] <= self._X.shape[1]:
+        if self._sample_size <= self._feature_nums:
             raise Exception(
                 "Number of observations is less than or equal to the number of independent variables."
             )
@@ -121,13 +119,11 @@ class PairsBootstrap:
         if np.isnan(self._Y).any():
             raise Exception("There is a NaN value in Y.")
 
-        if self._X.shape[0] != self._Y.shape[0]:
+        if self._sample_size != self._Y.shape[0]:
             raise Exception("The number of observations is not equal in X and Y.")
 
         # End of checking the "goodness" of the input Y:
         # End of the scrutiny of Y:
-
-        self._sample_size = self._Y.shape[0]
 
         self._decode_varname_to_num = {
             key: val for val, key in enumerate(self._indep_varname)
@@ -139,9 +135,9 @@ class PairsBootstrap:
         self._ci_type = ci_type
         self._lwb = (1 - self._ci) / 2
         self._upb = self._ci + self._lwb
+        self._scale_resid_bool = False
 
         self._bootstrap_type = "Pairs Bootstrap"
-
         self._rng = np.random.default_rng(seed)
 
     def _init_asarray_X(self, X_arr, fit_intercept):
@@ -187,7 +183,7 @@ class PairsBootstrap:
         model_linreg = LR(self._Y, self._X)
         model_linreg.fit()
 
-        if model_linreg.rank != self._X.shape[1]:
+        if model_linreg.rank != self._feature_nums:
             raise Exception(
                 "The indpendent variables in the sample are not linearly independent!"
             )
@@ -199,14 +195,12 @@ class PairsBootstrap:
         self._orig_pred_train = model_linreg.predict(self._X)
         self._orig_resid = model_linreg.get_residual(self._orig_pred_train)
 
-    def _calc_se(self):
-        self._orig_se, self._orig_hc_resid = se_calculation(
-            self._X,
-            self._se_type,
-            self._orig_resid,
-            self._orig_ssr,
-            scale_resid=False,
-        )
+        self._pinv_XtX = np.linalg.pinv(self._X.T @ self._X)
+        if self._ci_type == "studentized" and self._bootstrap_type != "Pairs Bootstrap":
+            if self._se_type in ["constant", "hc0", "hc1"]:
+                self._H_diag = None
+            else:
+                self._H_diag = np.diag(self._X @ self._pinv_XtX @ self._X.T)
 
     def _bootstrap(self):
         self._indep_vars_bs_param = np.zeros((len(self._indep_varname), self._reps))
@@ -217,19 +211,53 @@ class PairsBootstrap:
             self._sample_size, (self._reps, self._sample_size), replace=True
         )
 
-        for i in range(self._reps):
-            resampled_mtx = data_mtx[idx_arr_mtx[i]]
-            Y_resampled = resampled_mtx[:, 0]
-            X_resampled = resampled_mtx[:, 1:]
+        if self._ci_type == "studentized":
+            bs_se = np.zeros((self._feature_nums, self._reps))
 
-            ols_model = LR(Y_resampled, X_resampled)
-            ols_model.fit()
+            for i in range(self._reps):
+                resampled_mtx = data_mtx[idx_arr_mtx[i]]
+                Y_resampled = resampled_mtx[:, 0]
+                X_resampled = resampled_mtx[:, 1:]
 
-            self._indep_vars_bs_param[:, i] = ols_model.params
+                ols_bs_model = LR(Y_resampled, X_resampled)
+                ols_bs_model.fit()
+
+                self._indep_vars_bs_param[:, i] = ols_bs_model.params
+
+                bs_ssr = ols_bs_model.ssr
+                bs_pred_train = ols_bs_model.predict(X_resampled)
+                bs_resid = ols_bs_model.get_residual(bs_pred_train)
+
+                bs_se[:, i] = calc_se_psb_t(
+                    X_resampled, bs_resid, bs_ssr, self._se_type
+                )
+
+            self._t_stat_boot = (
+                self._indep_vars_bs_param
+                - self._orig_params.reshape(self._feature_nums, 1)
+            ) / bs_se
+
+        else:
+            for i in range(self._reps):
+                resampled_mtx = data_mtx[idx_arr_mtx[i]]
+                Y_resampled = resampled_mtx[:, 0]
+                X_resampled = resampled_mtx[:, 1:]
+
+                ols_bs_model = LR(Y_resampled, X_resampled)
+                ols_bs_model.fit()
+
+                self._indep_vars_bs_param[:, i] = ols_bs_model.params
 
     def fit(self):
         self._calc_orig_param_resid()
-        self._calc_se()
+        self._orig_se, self._scaled_residuals = calc_se_orig(
+            self._X,
+            self._pinv_XtX,
+            self._orig_resid,
+            self._orig_ssr,
+            self._se_type,
+            scale_resid_bool=self._scale_resid_bool,
+        )
         self._bootstrap()
         self._indep_vars_bs_mean = np.mean(
             self._indep_vars_bs_param, axis=1
@@ -242,19 +270,37 @@ class PairsBootstrap:
         )  # Calculating Bias
 
         # Calculating each parameter (row) a confidence interval
-        bca = BCa(
-            self._Y,
-            self._X,
-            self._orig_params,
-            self._indep_vars_bs_param,
-            ci=self._ci,
-            ci_type=self._ci_type,
-        )
+        if self._ci_type == "studentized":
+            t_stat_pctile = np.percentile(
+                self._t_stat_boot, [self._lwb * 100, self._upb * 100], axis=1
+            )
 
-        self._ci_mtx = bca.bca_ci
+            self._ci_mtx = self._orig_params - self._orig_se * t_stat_pctile
+            self._ci_mtx[[0, 1]] = self._ci_mtx[
+                [1, 0]
+            ]  # swap the row because before swapping the first row is the upper-bound
+
+            self._ci_mtx = self._ci_mtx.T
+
+        else:
+            bca = BCa(
+                self._Y,
+                self._X,
+                self._orig_params,
+                self._indep_vars_bs_param,
+                ci=self._ci,
+                ci_type=self._ci_type,
+            )
+
+            self._ci_mtx = bca.bca_ci
 
     def summary(self):
-        ci_translation = {"percentile": "Percentile", "bc": "BC", "bca": "BCa"}
+        ci_translation = {
+            "percentile": "Percentile",
+            "bc": "BC",
+            "bca": "BCa",
+            "studentized": "Studentized",
+        }
 
         table = PrettyTable()
         table.title = f"{self._bootstrap_type} results with {self._sample_size} obs and {self._reps} BS reps using {self._se_translation[self._se_type]} SE-s and {(self._ci * 100):.2f}% {ci_translation[self._ci_type]} CI"
@@ -316,6 +362,7 @@ class PairsBootstrap:
 
         return selected_bs_params
 
+    # TODO: rename and use the appropriate functions from the refactored std_error.py
     def get_ci(self, which_ci="current", which_var="all"):
         all_ci = sorted(["bc", "bca", "percentile"])
 
@@ -394,6 +441,7 @@ class PairsBootstrap:
 
         return selected_ci_df
 
+    # TODO: restructure
     def get_all_se(self, which_var="all"):
         if isinstance(which_var, str):
             if which_var == "all":
@@ -462,12 +510,14 @@ class PairsBootstrap:
         return se_mtx
 
     def bp_test(self, robust=True):
-        bp_test_result = het_breuschpagan(self._orig_hc_resid, self._X, robust=robust)
+        bp_test_result = het_breuschpagan(
+            self._scaled_residuals, self._X, robust=robust
+        )
 
         return bp_test_result
 
     def white_test(self):
-        white_test_result = het_white(self._orig_hc_resid, self._X)
+        white_test_result = het_white(self._scaled_residuals, self._X)
 
         return white_test_result
 

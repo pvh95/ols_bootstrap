@@ -2,6 +2,8 @@ import numpy as np
 from scipy.stats import norm
 from ols_bootstrap.auxillary.linreg import LR
 
+# TODO:  Rename the file, rename the class, implement reverse percentile ci as basic, (maybe implement expanded percentile, abc, double bootstrap if having spare time)
+
 
 class BCa:
     """
