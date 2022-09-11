@@ -3,6 +3,7 @@
 
 #Ignore files
 balance2018.csv
+ols_bootstrap/auxillary/abc_ci.py
 
 #Ignoring folders 
 others/*
@@ -11,5 +12,8 @@ ols_bootstrap/__pycache__/*
 ols_bootstrap/auxillary/__pycache__/*
 ols_bootstrap/ipynb/*
 .ipynb_checkpoints/*
+abc_tilt/*
+demonstration_copies/*
+
 
 
