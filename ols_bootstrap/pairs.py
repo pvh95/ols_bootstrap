@@ -19,6 +19,7 @@ class PairsBootstrap:
         ci=0.95,
         ci_type="bc",
         fit_intercept=True,
+        subset_jack_ratio=None,
         seed=None,
     ):
         self._se_translation = {
@@ -145,7 +146,9 @@ class PairsBootstrap:
         self._scale_resid_bool = False
 
         self._bootstrap_type = "Pairs Bootstrap"
-        self._rng = np.random.default_rng(seed)
+        self._subset_jack_ratio = subset_jack_ratio
+        self._seed = seed
+        self._rng = np.random.default_rng(self._seed)
 
     def _init_asarray_X(self, X_arr, fit_intercept):
         if fit_intercept:
@@ -297,6 +300,8 @@ class PairsBootstrap:
                 self._indep_vars_bs_param,
                 ci=self._ci,
                 ci_type=self._ci_type,
+                subset_jack_ratio=self._subset_jack_ratio,
+                seed=self._seed,
             )
 
             self._ci_mtx = bca.bca_ci

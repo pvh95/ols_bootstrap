@@ -3,7 +3,7 @@ from scipy.stats import norm
 from ols_bootstrap.auxillary.linreg import LR
 
 # TODO:  Rename the file, rename the class
-# Not important TODO: maybe implement expanded percentile, abc, double bootstrap if having spare time
+# Not important TODO: maybe implement expanded percentile if having spare time
 
 
 class BCa:
@@ -13,7 +13,17 @@ class BCa:
     BC is a special case of BCa with acceleration factor a_hat = 0
     """
 
-    def __init__(self, Y, X, orig_params, bs_params, ci=0.95, ci_type="bc"):
+    def __init__(
+        self,
+        Y,
+        X,
+        orig_params,
+        bs_params,
+        ci=0.95,
+        ci_type="bc",
+        subset_jack_ratio=None,
+        seed=None,
+    ):
         self._Y = Y
         self._X = X
         self._orig_params = orig_params.reshape(orig_params.shape[0], 1)
@@ -22,6 +32,9 @@ class BCa:
         self._lwb = (1 - self._ci) / 2
         self._upb = self._ci + self._lwb
         self._ci_type = ci_type
+        self._subset_jack_ratio = subset_jack_ratio
+        self._seed = seed
+        self._rng = np.random.default_rng(self._seed)
 
     def _compute_z0_jknife_reps_acceleration(self):
         self._a_hat = np.zeros(self._orig_params.shape[0])
@@ -34,6 +47,38 @@ class BCa:
 
         # Compute acceleration factor a_hat. It will be computed from jacknife estimator of the skewness of the parameter if computing for BCa.
         if self._ci_type == "bca":
+            if self._subset_jack_ratio is not None:
+                if not (
+                    isinstance(self._subset_jack_ratio, int)
+                    or isinstance(self._subset_jack_ratio, float)
+                ):
+                    raise Exception(
+                        '"subset_jack_ratio" variable should be a float/int in the (0,1) interval.'
+                    )
+
+                self._subset_jack_ratio = float(self._subset_jack_ratio)
+
+                if 0 < self._subset_jack_ratio < 1:
+
+                    num_of_subsample = np.round(
+                        self._X.shape[0] * self._subset_jack_ratio
+                    ).astype(int)
+
+                    idx_arr_mtx = self._rng.choice(
+                        np.array(self._X.shape[0]), num_of_subsample, replace=False
+                    )
+
+                    self._X = self._X[idx_arr_mtx, :]
+                    self._Y = self._Y[idx_arr_mtx]
+
+                elif self._subset_jack_ratio == 1.0:
+                    self._subset_jack_ratio = None
+
+                else:
+                    raise Exception(
+                        '"subset_jack_ratio" variable should be in thr (0,1) interval. If you want to use the whole dataset, just leave set "subset_jack_ratio" to be None.'
+                    )
+
             jknife_reps = np.zeros_like(self._X)
 
             for i in range(jknife_reps.shape[0]):

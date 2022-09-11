@@ -14,11 +14,14 @@ class ResidualBootstrap(PairsBootstrap):
         ci=0.95,
         ci_type="bc",
         fit_intercept=True,
+        subset_jack_ratio=None,
         seed=None,
         scale_resid_bool=True,
     ):
 
-        super().__init__(Y, X, reps, se_type, ci, ci_type, fit_intercept, seed)
+        super().__init__(
+            Y, X, reps, se_type, ci, ci_type, fit_intercept, subset_jack_ratio, seed
+        )
         self._scale_resid_bool = scale_resid_bool
         self._bootstrap_type = "Residual Bootstrap"
 
