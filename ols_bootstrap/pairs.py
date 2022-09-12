@@ -150,7 +150,8 @@ class PairsBootstrap:
         self._seed = seed
         self._rng = np.random.default_rng(self._seed)
 
-    def _init_asarray_X(self, X_arr, fit_intercept):
+    @staticmethod
+    def _init_asarray_X(X_arr, fit_intercept):
         if fit_intercept:
             X_arr = np.c_[np.ones(X_arr.shape[0]), X_arr]
             indep_varname = ["const"] + [
@@ -168,7 +169,8 @@ class PairsBootstrap:
 
         return X_arr, indep_varname
 
-    def _init_asarray_Y(self, Y_arr):
+    @staticmethod
+    def _init_asarray_Y(Y_arr):
         if Y_arr.shape == (Y_arr.shape[0],):
             return Y_arr
 
