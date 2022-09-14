@@ -6,6 +6,7 @@ from ols_bootstrap.auxillary.linreg import LR
 from ols_bootstrap.auxillary.bca import BCa
 from ols_bootstrap.auxillary.std_error import calc_se_orig
 from prettytable import PrettyTable, ALL
+from IPython.display import display
 
 
 class BaseEstimator:
@@ -264,6 +265,47 @@ class BaseEstimator:
 
             self._ci_mtx = bca.bca_ci
 
+        self._summary_table()
+
+    def _summary_table(self):
+        result_columns = (
+            "Var",
+            "OLS Params",
+            "Avg BS Params",
+            "Bias",
+            "OLS Params SE",
+            "BS Params SE",
+            "% of SE Diff",
+            "CI Lower",
+            "CI Upper",
+        )
+
+        result_table = np.empty((len(self._indep_varname), len(result_columns))).astype(
+            "<U32"
+        )
+
+        for idx, var in enumerate(self._indep_varname):
+            row_vals = np.array(
+                [
+                    var,
+                    np.round(self._orig_params[idx], 4),
+                    np.round(self._indep_vars_bs_mean[idx], 4),
+                    np.round(self._indep_vars_bs_bias[idx], 4),
+                    np.round(self._orig_se[idx], 4),
+                    np.round(self._indep_vars_bs_se[idx], 4),
+                    np.round(
+                        (1 - self._indep_vars_bs_se[idx] / self._orig_se[idx]) * 100, 2
+                    ),
+                    np.round(self._ci_mtx[idx, 0], 4),
+                    np.round(self._ci_mtx[idx, 1], 4),
+                ]
+            )
+            result_table[idx, :] = row_vals
+
+        self._df_summary = pd.DataFrame(
+            data=result_table, columns=result_columns
+        ).set_index("Var")
+
     def summary(self):
         ci_translation = {
             "percentile": "Percentile",
@@ -274,38 +316,11 @@ class BaseEstimator:
             "empirical": "Empirical",
         }
 
-        table = PrettyTable()
-        table.title = f"{self._bootstrap_type} results with {self._sample_size} obs and {self._reps} BS reps using {self._se_translation[self._se_type]} SE-s and {(self._ci * 100):.2f}% {ci_translation[self._ci_type]} CI"
-        table.hrules = ALL
-
-        table.field_names = [
-            "Var",
-            "OLS Params",
-            "Avg BS Params",
-            "Bias",
-            "OLS Params SE",
-            "BS Params SE",
-            "% of SE Diff",
-            "CI",
-        ]
-
-        for idx, var in enumerate(self._indep_varname):
-            table.add_row(
-                [
-                    f"{var}",
-                    f"{self._orig_params[idx]:.4f}",
-                    f"{self._indep_vars_bs_mean[idx]:.4f}",
-                    f"{self._indep_vars_bs_bias[idx]:.4f}",
-                    f"{self._orig_se[idx]:.4f}",
-                    f"{self._indep_vars_bs_se[idx]:.4f}",
-                    f"{(1.0 - self._indep_vars_bs_se[idx] / self._orig_se[idx])*100.0:.2f}",
-                    f"[{self._ci_mtx[idx, 0]:.4f}, {self._ci_mtx[idx, 1]:.4f}]",
-                ]
+        display(
+            self._df_summary.style.set_caption(
+                f"{self._bootstrap_type} results with {self._sample_size} obs and {self._reps} BS reps using {self._se_translation[self._se_type]} SE-s and {(self._ci * 100):.2f}% {ci_translation[self._ci_type]} CI"
             )
-
-        table.padding_width = 1
-        table.padding_height = 1
-        print(table)
+        )
 
     def get_bootstrap_params(self, which_var="all"):
         if isinstance(which_var, str):
@@ -521,4 +536,6 @@ class BaseEstimator:
     def bs_ci(self):
         return self._ci_mtx
 
-    # TODO: formatting summary table or writing alternative summary() method
+    @property
+    def summary_table(self):
+        return self._df_summary
