@@ -229,7 +229,10 @@ class BaseEstimator:
         )
 
     def fit(self):
-        self.simple_ols_fit()
+        # Check if simple_ols_fit method was run before. If not run it, otherwise don't rerun as it has already been attached to the object.
+        if not hasattr(self, "_orig_ssr"):
+            self.simple_ols_fit()
+
         self._bootstrap()
         self._indep_vars_bs_mean = np.mean(
             self._indep_vars_bs_param, axis=1
@@ -556,5 +559,4 @@ class BaseEstimator:
         return self._df_summary
 
 
-# ToDo: Redesign get_ci, get all_se, and try to bring forward the white and breush-pagan test
-# so that no need to do the actual bootstrapping before having those test results
+# ToDo: Redesign get_ci, get all_se
