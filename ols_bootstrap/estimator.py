@@ -268,16 +268,28 @@ class BaseEstimator:
         self._summary_table()
 
     def _summary_table(self):
+        # result_columns = (
+        #     "Var",
+        #     "OLS Params",
+        #     "Avg BS Params",
+        #     "Bias",
+        #     "OLS Params SE",
+        #     "BS Params SE",
+        #     "% of SE Diff",
+        #     "CI Lower",
+        #     "CI Upper",
+        # )
+
         result_columns = (
-            "Var",
-            "OLS Params",
-            "Avg BS Params",
-            "Bias",
-            "OLS Params SE",
-            "BS Params SE",
-            "% of SE Diff",
-            "CI Lower",
-            "CI Upper",
+            "var",
+            "ols_params",
+            "avg_bs_params",
+            "bias",
+            "ols_params_se",
+            "bs_params_se",
+            "perc_of_se_diff",
+            "ci_lower",
+            "ci_upper",
         )
 
         result_table = np.empty((len(self._indep_varname), len(result_columns))).astype(
@@ -304,7 +316,7 @@ class BaseEstimator:
 
         self._df_summary = pd.DataFrame(
             data=result_table, columns=result_columns
-        ).set_index("Var")
+        ).set_index("var")
 
     def summary(self):
         ci_translation = {
@@ -539,3 +551,7 @@ class BaseEstimator:
     @property
     def summary_table(self):
         return self._df_summary
+
+
+# ToDo: Redesign get_ci, get all_se, and try to bring forward the white and breush-pagan test
+# so that no need to do the actual bootstrapping before having those test results
