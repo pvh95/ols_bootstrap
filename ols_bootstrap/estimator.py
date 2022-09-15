@@ -39,18 +39,20 @@ class BaseEstimator:
             "hc5": "HC5",
         }
 
+        self._ci_translation = {
+            "percentile": "Percentile",
+            "bc": "BC",
+            "bca": "BCa",
+            "studentized": "Studentized",
+            "basic": "Basic",
+            "empirical": "Empirical",
+        }
+
         # Beginning of the optional input arguments check
         if se_type not in self._se_translation:
             raise Exception("Invalid standard error type.")
 
-        if ci_type not in {
-            "bc",
-            "bca",
-            "percentile",
-            "studentized",
-            "basic",
-            "empirical",
-        }:
+        if ci_type not in self._ci_translation:
             raise Exception("Invalid confidence interval type.")
         # End of the optional input arguments check
 
@@ -318,18 +320,9 @@ class BaseEstimator:
         ).set_index("var")
 
     def summary(self):
-        ci_translation = {
-            "percentile": "Percentile",
-            "bc": "BC",
-            "bca": "BCa",
-            "studentized": "Studentized",
-            "basic": "Basic",
-            "empirical": "Empirical",
-        }
-
         display(
             self._df_summary.style.set_caption(
-                f"{self._bootstrap_type} results with {self._sample_size} obs and {self._reps} BS reps using {self._se_translation[self._se_type]} SE-s and {(self._ci * 100):.2f}% {ci_translation[self._ci_type]} CI"
+                f"{self._bootstrap_type} results with {self._sample_size} obs and {self._reps} BS reps using {self._se_translation[self._se_type]} SE-s and {(self._ci * 100):.2f}% {self._ci_translation[self._ci_type]} CI"
             )
         )
 
@@ -360,13 +353,19 @@ class BaseEstimator:
 
         return selected_bs_params
 
-    # TODO: rename and use the appropriate functions from the refactored std_error.py
-    def get_ci(self, which_ci="current", which_var="all"):
-        all_ci = sorted(["bc", "bca", "percentile"])
+    def get_bca_ci(self, which_ci="current", which_var="all"):
+        # all_ci = sorted(["bc", "bca", "percentile"])
+        all_ci = sorted(self._ci_translation)
+        all_ci.remove("studentized")
 
         if isinstance(which_ci, str):
             if which_ci == "current":
-                which_ci = [self._ci_type]
+                if self._ci_type == "studentized":
+                    raise Exception(
+                        f"{self._ci_type} is not a BCa-type bootstrap confidence interval."
+                    )
+                else:
+                    which_ci = [self._ci_type]
 
             elif which_ci == "all":
                 which_ci = all_ci
@@ -393,6 +392,15 @@ class BaseEstimator:
                 selected_ci_dict[key] = self._ci_mtx
 
             else:
+                # bca = BCa(
+                #     self._Y,
+                #     self._X,
+                #     self._orig_params,
+                #     self._indep_vars_bs_param,
+                #     ci=self._ci,
+                #     ci_type=key,
+                # )
+
                 bca = BCa(
                     self._Y,
                     self._X,
@@ -400,6 +408,8 @@ class BaseEstimator:
                     self._indep_vars_bs_param,
                     ci=self._ci,
                     ci_type=key,
+                    subset_jack_ratio=self._subset_jack_ratio,
+                    seed=self._seed,
                 )
 
                 selected_ci_dict[key] = bca.bca_ci
@@ -546,6 +556,3 @@ class BaseEstimator:
     @property
     def summary_table(self):
         return self._df_summary
-
-
-# TODO: Redesign get_ci
