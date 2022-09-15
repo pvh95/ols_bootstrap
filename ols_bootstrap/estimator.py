@@ -4,7 +4,12 @@ import itertools
 from statsmodels.stats.diagnostic import het_breuschpagan, het_white
 from ols_bootstrap.auxillary.linreg import LR
 from ols_bootstrap.auxillary.bca import BCa
-from ols_bootstrap.auxillary.std_error import calc_se_orig
+from ols_bootstrap.auxillary.std_error import (
+    calc_se_orig,
+    HC0_1,
+    HC2_5,
+    homoscedastic_se,
+)
 from prettytable import PrettyTable, ALL
 from IPython.display import display
 
@@ -274,18 +279,6 @@ class BaseEstimator:
         self._summary_table()
 
     def _summary_table(self):
-        # result_columns = (
-        #     "Var",
-        #     "OLS Params",
-        #     "Avg BS Params",
-        #     "Bias",
-        #     "OLS Params SE",
-        #     "BS Params SE",
-        #     "% of SE Diff",
-        #     "CI Lower",
-        #     "CI Upper",
-        # )
-
         result_columns = (
             "var",
             "ols_params",
@@ -294,8 +287,8 @@ class BaseEstimator:
             "ols_params_se",
             "bs_params_se",
             "perc_of_se_diff",
-            "ci_lower",
-            "ci_upper",
+            "ci_lwb",
+            "ci_upb",
         )
 
         result_table = np.empty((len(self._indep_varname), len(result_columns))).astype(
@@ -446,7 +439,6 @@ class BaseEstimator:
 
         return selected_ci_df
 
-    # TODO: restructure
     def get_all_se(self, which_var="all"):
         if isinstance(which_var, str):
             if which_var == "all":
@@ -467,15 +459,12 @@ class BaseEstimator:
             which_var = tuple(which_var)
             idx_lst = [self._decode_varname_to_num[key] for key in which_var]
 
-        se_translation_ammended = self._se_translation.copy()
-        se_translation_ammended["bootstrapped"] = "bootstrapped"
-
-        se_mtx = np.zeros((len(idx_lst), len(se_translation_ammended)))
+        se_mtx = np.zeros((len(idx_lst), len(self._se_translation)))
 
         hce_basic = HC0_1(self._X, self._orig_resid)
         hce_weighted = HC2_5(self._X, self._orig_resid)
 
-        for col_num, se_col in enumerate(se_translation_ammended):
+        for col_num, se_col in enumerate(self._se_translation):
             if se_col == "bootstrapped":
                 se_mtx[:, col_num] = self._indep_vars_bs_se[idx_lst]
 
@@ -508,11 +497,11 @@ class BaseEstimator:
                 elif se_col == "hc5":
                     se_mtx[:, col_num] = hce_weighted.HC5_se[idx_lst]
 
-        se_mtx = pd.DataFrame(
-            data=se_mtx, columns=se_translation_ammended, index=which_var
+        df_se_mtx = pd.DataFrame(
+            data=se_mtx, columns=self._se_translation, index=which_var
         )
 
-        return se_mtx
+        return df_se_mtx
 
     def bp_test(self, robust=True):
         bp_test_result = het_breuschpagan(
@@ -559,4 +548,4 @@ class BaseEstimator:
         return self._df_summary
 
 
-# ToDo: Redesign get_ci, get all_se
+# TODO: Redesign get_ci
