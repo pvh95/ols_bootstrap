@@ -217,7 +217,7 @@ class BaseEstimator:
     def _bootstrap(self):
         pass
 
-    def fit(self):
+    def simple_ols_fit(self):
         self._calc_orig_param_resid()
         self._orig_se, self._scaled_residuals = calc_se_orig(
             self._X,
@@ -227,6 +227,9 @@ class BaseEstimator:
             self._se_type,
             scale_resid_bool=self._scale_resid_bool,
         )
+
+    def fit(self):
+        self.simple_ols_fit()
         self._bootstrap()
         self._indep_vars_bs_mean = np.mean(
             self._indep_vars_bs_param, axis=1
