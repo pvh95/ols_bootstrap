@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import itertools
+import statsmodels.api as sm
 from statsmodels.stats.diagnostic import het_breuschpagan, het_white
 from ols_bootstrap.auxillary.linreg import LR
 from ols_bootstrap.auxillary.bca import BCa
@@ -29,7 +30,7 @@ class BaseEstimator:
         seed=None,
     ):
         self._se_translation = {
-            "constant": "constant",
+            "nonrobust": "nonrobust",
             "hc0": "HC0",
             "hc1": "HC1",
             "hc2": "HC2",
@@ -224,7 +225,28 @@ class BaseEstimator:
     def _bootstrap(self):
         pass
 
-    def simple_ols_fit(self):
+    def ols_fit_sample(self, is_statsmodel=True):
+        if is_statsmodel:
+            X_temp_df = pd.DataFrame(data=self._X, columns=self._indep_varname)
+
+            if self._se_type in ("hc4", "hc4m", "hc5"):
+                # Try to use logger instead in the long run
+                print(
+                    f'For displaying this OLS statsmodel result, HC3 is going to be used as statsmodels currently does not support {self._se_translation[self._se_type]}. To get {self._se_translation[self._se_type]}, please use "get_all_se()" method right after executing the "ols_fit_sample()" method.',
+                    end="\n\n",
+                )
+
+                statsmodels_model = sm.OLS(self._Y, X_temp_df)
+                statsmodels_result = statsmodels_model.fit(cov_type="HC3")
+                print(statsmodels_result.summary())
+
+            else:
+                statsmodels_model = sm.OLS(self._Y, X_temp_df)
+                statsmodels_result = statsmodels_model.fit(
+                    cov_type=self._se_translation[self._se_type]
+                )
+                print(statsmodels_result.summary())
+
         self._calc_orig_param_resid()
         self._orig_se, self._scaled_residuals = calc_se_orig(
             self._X,
@@ -236,9 +258,9 @@ class BaseEstimator:
         )
 
     def fit(self):
-        # Check if simple_ols_fit method was run before. If not run it, otherwise don't rerun as it has already been attached to the object.
+        # Check if ols_fit_sample method was run before. If not run it, otherwise don't rerun as it has already been attached to the object.
         if not hasattr(self, "_orig_ssr"):
-            self.simple_ols_fit()
+            self.ols_fit_sample(is_statsmodel=False)
 
         self._bootstrap()
         self._indep_vars_bs_mean = np.mean(
