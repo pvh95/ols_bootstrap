@@ -230,7 +230,7 @@ class BaseEstimator:
             X_temp_df = pd.DataFrame(data=self._X, columns=self._indep_varname)
 
             if self._se_type in ("hc4", "hc4m", "hc5"):
-                # Try to use logger instead in the long run
+                # Try to use logger and/or warnings packages instead in the long run
                 print(
                     f'For displaying this OLS statsmodel result, HC3 is going to be used as statsmodels currently does not support {self._se_translation[self._se_type]}. To get {self._se_translation[self._se_type]}, please use "get_all_se()" method right after executing the "ols_fit_sample()" method.',
                     end="\n\n",
@@ -247,15 +247,17 @@ class BaseEstimator:
                 )
                 print(statsmodels_result.summary())
 
-        self._calc_orig_param_resid()
-        self._orig_se, self._scaled_residuals = calc_se_orig(
-            self._X,
-            self._pinv_XtX,
-            self._orig_resid,
-            self._orig_ssr,
-            self._se_type,
-            scale_resid_bool=self._scale_resid_bool,
-        )
+        # Check if ols_fit_sample method was run before. If not run it, otherwise don't rerun as it has already been attached to the object.
+        if not hasattr(self, "_orig_ssr"):
+            self._calc_orig_param_resid()
+            self._orig_se, self._scaled_residuals = calc_se_orig(
+                self._X,
+                self._pinv_XtX,
+                self._orig_resid,
+                self._orig_ssr,
+                self._se_type,
+                scale_resid_bool=self._scale_resid_bool,
+            )
 
     def fit(self):
         # Check if ols_fit_sample method was run before. If not run it, otherwise don't rerun as it has already been attached to the object.
@@ -376,7 +378,6 @@ class BaseEstimator:
         return selected_bs_params
 
     def get_bca_ci(self, which_ci="current", which_var="all"):
-        # all_ci = sorted(["bc", "bca", "percentile"])
         all_ci = sorted(self._ci_translation)
         all_ci.remove("studentized")
 
@@ -414,15 +415,6 @@ class BaseEstimator:
                 selected_ci_dict[key] = self._ci_mtx
 
             else:
-                # bca = BCa(
-                #     self._Y,
-                #     self._X,
-                #     self._orig_params,
-                #     self._indep_vars_bs_param,
-                #     ci=self._ci,
-                #     ci_type=key,
-                # )
-
                 bca = BCa(
                     self._Y,
                     self._X,

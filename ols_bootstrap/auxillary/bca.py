@@ -64,6 +64,11 @@ class BCa:
                         self._X.shape[0] * self._subset_jack_ratio
                     ).astype(int)
 
+                    if num_of_subsample == 0:
+                        raise Exception(
+                            f'Choose an appropriate "subset_jack_ratio" because wih the current {self._subset_jack_ratio} choice, the number of subsample after rounding is 0.'
+                        )
+
                     idx_arr_mtx = self._rng.choice(
                         np.array(self._X.shape[0]), num_of_subsample, replace=False
                     )
