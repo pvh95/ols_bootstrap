@@ -495,7 +495,7 @@ class BaseEstimator:
             elif se_col == self._se_type:
                 se_mtx[:, col_num] = self._orig_se[idx_lst]
 
-            elif se_col == "constant":
+            elif se_col == "nonrobust":
                 se_mtx[:, col_num] = homoscedastic_se(self._X, self._orig_ssr)[idx_lst]
 
             elif se_col in ["hc0", "hc1"]:

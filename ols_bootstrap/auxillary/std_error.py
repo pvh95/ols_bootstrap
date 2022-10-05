@@ -5,7 +5,7 @@ import numpy as np
 
 
 def calc_se_orig(X, pinv_XtX, orig_resid, orig_ssr, se_type, scale_resid_bool=False):
-    if se_type == "constant":
+    if se_type == "nonrobust":
         const_varience = orig_ssr / (X.shape[0] - X.shape[1])
         cov_mtx_params = const_varience * pinv_XtX
 
@@ -74,7 +74,7 @@ def calc_se_t(
     se_type,
     H_diag=None,
 ):
-    if se_type == "constant":
+    if se_type == "nonrobust":
         const_varience = bs_ssr / (X.shape[0] - X.shape[1])
         cov_mtx_params = const_varience * pinv_XtX
 
@@ -130,7 +130,7 @@ def calc_se_t(
 def calc_se_psb_t(X_resampled, bs_resid, bs_ssr, se_type):
     pinv_XtX = np.linalg.pinv(X_resampled.T @ X_resampled)
 
-    if se_type == "constant":
+    if se_type == "nonrobust":
         const_varience = bs_ssr / (X_resampled.shape[0] - X_resampled.shape[1])
         cov_mtx_params = const_varience * pinv_XtX
 
