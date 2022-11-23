@@ -3,6 +3,9 @@
 
 #Ignore files
 balance2018.csv
+multi.py
+2013.csv
+2014.csv
 ols_bootstrap/auxillary/abc_ci.py
 
 #Ignoring folders 
